@@ -48,7 +48,7 @@ The agent uses an OpenAI model (`gpt-4o`) for reasoning and response generation.
 
 ### Software
 
-- **Python 3.11 or later** — download from [python.org](https://www.python.org/downloads/) if needed.
+- **Python 3.10 or later** — download from [python.org](https://www.python.org/downloads/) if needed.
 - **[uv](https://docs.astral.sh/uv/)** — used to manage the virtual environment and dependencies. Install with `curl -LsSf https://astral.sh/uv/install.sh | sh`.
 
 ## 1. Clone the Repository
@@ -112,7 +112,7 @@ uv run agent.py
 ## 5. Next Steps
 
 - **Customize the system prompt** in [`agent.py`](agent.py) to shape the agent's tone or scope.
-- **Add more connectors** by calling `connect("<connector>")` for other Airbyte sources and exposing them as additional tools — the agent can use several at once.
+- **Add more connectors** by installing the Airbyte connector from the Python SDK, calling `connect("<connector>")`, and exposing them as additional tools. The agent can use several at once.
 - **Swap the model** by changing the `ChatOpenAI(model=...)` argument, or wire in a different LangChain chat model.
 - **Tune behavior** by adjusting the `temperature` or extending the conversation handling in [`main.py`](main.py).
 
