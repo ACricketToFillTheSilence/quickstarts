@@ -1,0 +1,97 @@
+# ───────────────────────────────────────────────────────────────────────────
+# dispute-fighter configuration
+#
+# Copy this file to `config.yaml` (same folder) and edit it for your org.
+# Everything goes through the Airbyte Agent SDK, so "switching tools" usually
+# means changing a connector slug and a couple of field names.
+#
+# Requires PyYAML (`pip install pyyaml`). Prefer zero dependencies? Write the
+# same structure as `config.json` instead — the loader reads either.
+# Field-by-field guide: references/configuration.md
+# ───────────────────────────────────────────────────────────────────────────
+
+# Stripe is the fixed system of record for disputes. You can tune account
+# specifics, but the connector itself is pinned — disputes always come from Stripe.
+stripe:
+  dispute_fee_cents: 1500        # your per-dispute Stripe fee. This default is equivalent to $15.00
+  default_currency: usd
+
+# Evaluation policy (amounts in cents).
+evaluation:
+  min_amount_cents: 0            # skip evaluating disputes below this (0 = evaluate all). 50000 = $500
+  high_value_cents: 20000        # digest quick-lean tips to FIGHT at/above this even at moderate odds. 20000 = $200
+  min_winnability: 0.0           # win-probability floor (0..1) the company will fight. 0 = no floor; 0.5 = skip worse-than-coin-flip
+
+# Auxiliary evidence/context sources, keyed by ROLE. Point each role at whatever
+# tool your org uses. Set a role to `null` to disable it (e.g. no internal chat).
+sources:
+
+  # All connectors below must be AIRBYTE AGENT connectors (the ~60-connector Agent
+  # catalog used by airbyte-agent-sdk), not classic ELT connectors. See:
+  # https://docs.airbyte.com/ai-agents/connectors
+
+  # Customer communications — proof of contact, refund offers, cancellation requests.
+  customer_comms:
+    connector: zendesk-support   # Agent connectors: zendesk-support | intercom | freshdesk | salesforce | hubspot
+    entity: tickets              # Context Store entity to search
+    match_field: requester_email # field on that entity holding the customer's email
+    comments_entity: ticket_comments   # optional; omit if not applicable
+
+  # Internal policy documents — refund / cancellation / ToS / shipping policies.
+  policies:
+    connector: google-drive      # Agent connectors: google-drive | notion | confluence | airtable
+    entity: files
+    name_field: name             # field to keyword-match document titles against
+    keywords:
+      - refund policy
+      - cancellation policy
+      - terms of service
+      - shipping
+
+  # Internal chat — discussion about the customer/order (optional but handy).
+  internal_chat:
+    connector: slack             # Slack is currently the only chat Agent connector
+    entity: messages
+    text_field: text
+
+  # Service usage / product analytics — OPTIONAL. Proves the customer actually used
+  # the service; feeds Stripe's `access_activity_log`. Decisive for subscription_canceled
+  # and fraudulent/unrecognized disputes. Leave commented out (or null) if you don't have one.
+  # service_usage:
+  #   connector: amplitude       # event-level product usage (Agent connector). Mixpanel/Segment are NOT Agent connectors.
+  #   entity: events
+  #   match_field: email         # the identifier on usage events (email | user_id | external_id)
+  #
+  #   --- or use Orb (usage-based billing) instead: active subscriptions + invoices ---
+  #   connector: orb             # Agent connector; entities: customers | subscriptions | invoices (not raw events)
+  #   entity: subscriptions
+  #   match_field: external_customer_id   # Orb customer id field (or 'email' on the customers entity)
+
+  # E-commerce order data — OPTIONAL. Line items, shipping/fulfillment, tracking, the address
+  # the customer provided. Feeds shipping_* / product_description / receipt evidence; key for
+  # product_not_received and product_unacceptable. Leave commented out if you have no storefront.
+  # order_data:
+  #   connector: shopify         # Agent connectors: shopify | woocommerce | amazon-seller-partner
+  #   entity: orders
+  #   match_field: email         # the customer-email field on orders (Woo: billing.email; Amazon buyer email is often masked — match by order id instead)
+
+# Where the daily triage digest is posted.
+digest:
+  connector: slack               # slack | microsoft-teams | (or post via your own tool)
+  channel: "#disputes"
+  post_time: "09:00"
+  timezone: America/Los_Angeles
+  urgency_hours:                 # deadline thresholds for the 🔴/🟠/🟢 markers
+    red: 48
+    orange: 96
+
+# Where generated dispute packages and the self-heal knowledge base are saved (local only).
+storage:
+  local_dir: "~/dispute-fighter-data"  # holds pending/won/lost package folders,
+                               # plus learnings.md, pitfalls.md, and the index.json ledger
+
+# Optional: override the base winnability prior (0..1) for any Stripe reason code.
+# Use this to reflect your own historical win rates. Leave empty to use defaults.
+winnability_overrides: {}
+  # product_not_received: 0.7
+  # fraudulent: 0.35

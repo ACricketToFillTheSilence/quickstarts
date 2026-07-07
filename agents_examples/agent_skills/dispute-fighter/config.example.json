@@ -1,0 +1,59 @@
+{
+  "_comment": "Zero-dependency config. Copy to config.json and edit. Same fields as config.example.yaml; see references/configuration.md. Stripe is pinned. All other connectors must be Airbyte Agent connectors: https://docs.airbyte.com/ai-agents/connectors",
+  "stripe": {
+    "dispute_fee_cents": 1500,
+    "default_currency": "usd"
+  },
+  "evaluation": {
+    "min_amount_cents": 0,
+    "high_value_cents": 20000,
+    "min_winnability": 0.0
+  },
+  "sources": {
+    "customer_comms": {
+      "connector": "zendesk-support",
+      "entity": "tickets",
+      "match_field": "requester_email",
+      "comments_entity": "ticket_comments"
+    },
+    "policies": {
+      "connector": "google-drive",
+      "entity": "files",
+      "name_field": "name",
+      "keywords": ["refund policy", "cancellation policy", "terms of service", "shipping"]
+    },
+    "internal_chat": {
+      "connector": "slack",
+      "entity": "messages",
+      "text_field": "text"
+    },
+    "service_usage": null,
+    "order_data": null
+  },
+  "_optional_role_examples": {
+    "_comment": "Reference only (ignored at load — the leading underscore keeps it out of 'sources'). To enable an optional role, copy one of these into 'sources' above, replacing its null.",
+    "service_usage": {
+      "_comment": "Proves the customer used the service; feeds Stripe access_activity_log. Agent connectors: amplitude (event-level usage) or orb (usage-based billing: subscriptions/invoices, entity e.g. 'subscriptions', match_field 'external_customer_id').",
+      "connector": "amplitude",
+      "entity": "events",
+      "match_field": "email"
+    },
+    "order_data": {
+      "_comment": "E-commerce orders: line items, shipping/fulfillment, tracking, customer-provided address. Feeds shipping_*/product_description/receipt. Agent connectors: shopify | woocommerce | amazon-seller-partner. WooCommerce email field is 'billing.email'; Amazon buyer email is often masked, so match by order id.",
+      "connector": "shopify",
+      "entity": "orders",
+      "match_field": "email"
+    }
+  },
+  "digest": {
+    "connector": "slack",
+    "channel": "#disputes",
+    "post_time": "09:00",
+    "timezone": "America/Los_Angeles",
+    "urgency_hours": { "red": 48, "orange": 96 }
+  },
+  "storage": {
+    "local_dir": "~/dispute-fighter-data"
+  },
+  "winnability_overrides": {}
+}

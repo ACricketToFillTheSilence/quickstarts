@@ -1,0 +1,30 @@
+{
+  "source": "fixture",
+  "dispute": {
+    "id": "dp_fr02",
+    "reason": "fraudulent",
+    "amount": 2400,
+    "currency": "usd",
+    "status": "needs_response",
+    "charge": "ch_fr02",
+    "evidence_details": {"due_by": "2026-07-04T23:59:59Z", "has_evidence": false, "submission_count": 0},
+    "evidence": {}
+  },
+  "charge": {
+    "id": "ch_fr02",
+    "amount": 2400,
+    "customer": "cus_fr02",
+    "billing_details": {"name": "Alex Buyer", "email": "alex@example.com",
+      "address": {"line1": "1 Market St", "city": "San Francisco", "state": "CA", "postal_code": "94105", "country": "US"}},
+    "outcome": {"risk_level": "elevated", "network_status": "approved_by_network"},
+    "payment_method_details": {"card": {"checks": {"address_line1_check": "fail", "address_postal_code_check": "fail", "cvc_check": "unavailable"}}}
+  },
+  "customer": {"id": "cus_fr02", "name": "Alex Buyer", "email": "alex@example.com", "created": "2026-06-20"},
+  "refunds": [],
+  "fee": "15.00",
+  "order": {"number": "B-77", "items": [{"description": "Digital eBook download", "qty": 1}]},
+  "fulfillment": {"type": "digital", "access_logs": []},
+  "zendesk": [],
+  "policies": [],
+  "slack": []
+}
