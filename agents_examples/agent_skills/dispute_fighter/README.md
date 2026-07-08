@@ -176,7 +176,9 @@ scripts/
   build_evidence_package.py       # render Stripe evidence.json + readable doc
   storage.py                      # local package storage + ledger + learnings/pitfalls
   save_package.py                 # save a package and register it for outcome tracking
-  daily_dispute_digest.py         # build/post the daily triage digest
+  slack_format.py                 # shared Slack Block Kit helpers (native table, header, etc.)
+  daily_dispute_digest.py         # build/post the daily triage digest (Slack table)
+  evaluation_summary.py           # multi-dispute evaluation summary as a Slack table
   review_outcomes.py              # self-heal: scan resolved disputes, move to won/lost
 assets/evidence_package_template.md
 

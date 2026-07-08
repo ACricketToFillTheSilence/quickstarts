@@ -172,6 +172,11 @@ individual recommendations/packages. Keep going through the whole list even if s
 don't stop after the first. Apply the amount threshold (Step 2) to each, and still stop for human
 review at the end — never auto-submit any of them.
 
+If the consolidated summary is being **shared to Slack**, render it as a native Slack table: author a
+JSON of the results (`{"disputes":[{id, amount, currency, reason, verdict, due, package}]}`) and run
+[scripts/evaluation_summary.py](scripts/evaluation_summary.py) to get `text` + Block Kit `blocks`
+(same table styling as the digest). Post with `blocks`. In chat, a plain markdown summary is fine.
+
 ### Step 1 — Gather context
 
 Produce a single `dispute_context.json` keyed by role. How you produce it depends on the access mode:

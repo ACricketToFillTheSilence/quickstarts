@@ -28,6 +28,8 @@ import sys
 
 from config import load_config
 from storage import knowledge_dir
+from slack_format import (portable_date, ascii_table, header_block, section_block,
+                          context_block, table_block)
 
 # Base winnability prior per reason code — kept in sync with references/stripe-disputes.md.
 # Used only for the cheap "quick lean" hint, never as the real verdict. An org can override
@@ -176,24 +178,13 @@ def _due_phrase(days_left):
     return f"due in {int(days_left)}d"
 
 
-def _ascii_table(headers, data):
-    """Render a fixed-width table (renders aligned inside a Slack code block)."""
-    widths = [max(len(headers[i]), *(len(row[i]) for row in data)) for i in range(len(headers))]
-    def fmt(cells):
-        return "  ".join(str(c).ljust(widths[i]) for i, c in enumerate(cells)).rstrip()
-    sep = "  ".join("-" * w for w in widths)
-    return "\n".join([fmt(headers), sep] + [fmt(row) for row in data])
-
-
 FOOTER = ("Paste `evaluate <dispute-id>` into Claude (with the dispute-fighter skill) to run the full "
           "evaluation — it recommends fight or accept and builds the evidence package if worth fighting. "
           "`SKIP` = below your amount threshold; `EXPIRED` = deadline passed. No auto-submit.")
 
 
 def _title(now):
-    # Portable date (Windows strftime lacks %-d); build "Jul 1, 2026" without platform-specific codes.
-    date = f"{now.strftime('%b')} {now.day}, {now.year}" if hasattr(now, "strftime") else str(now)
-    return f"Disputes needing a response — {date}"
+    return f"Disputes needing a response — {portable_date(now)}"
 
 
 def _headline(rows, thresholds, since):
@@ -226,35 +217,30 @@ def to_slack_mrkdwn(rows, now, thresholds, since=None):
         return f"🛡️ *{_title(now)}*\n{_empty_msg(since)}"
     data = [[r["id"], f"{r['currency']} {r['amount']:,.2f}", r["reason"],
              _due_phrase(r["days_left"]), r["lean"], (r["customer_name"] or "")[:18]] for r in rows]
-    table = _ascii_table(["Dispute", "Amount", "Reason", "Due", "Lean", "Customer"], data)
+    table = ascii_table(["Dispute", "Amount", "Reason", "Due", "Lean", "Customer"], data)
     return "\n".join([f"🛡️ *{_title(now)}*", _headline(rows, thresholds, since), "",
                       "```", table, "```", f"_{FOOTER}_"])
 
 
 def to_slack_blocks(rows, now, thresholds, since=None):
     """Native Slack Block Kit layout: header, summary, and a real Slack `table` block of the disputes."""
-    blocks = [{"type": "header", "text": {"type": "plain_text", "text": f"🛡️ {_title(now)}", "emoji": True}}]
+    blocks = [header_block(f"🛡️ {_title(now)}")]
     if not rows:
-        blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": _empty_msg(since)}})
+        blocks.append(section_block(_empty_msg(since)))
         return blocks
-    blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": _headline(rows, thresholds, since)}})
+    blocks.append(section_block(_headline(rows, thresholds, since)))
     # Slack `table` block (added Aug 2025): max 100 rows, 20 cols, 10k chars total. Cap rows for headroom.
     shown, overflow = rows[:90], max(0, len(rows) - 90)
-    header = ["Dispute", "Amount", "Reason", "Due", "Lean", "Customer"]
-    trows = [[{"type": "raw_text", "text": h} for h in header]]
+    data = []
     for r in shown:
         due = _due_phrase(r["days_left"]) + (" (reminder)" if r.get("reminder") else "")
-        cells = [r["id"], f"{r['currency']} {r['amount']:,.2f}", r["reason"], due, r["lean"],
-                 r["customer_name"] or "—"]
-        trows.append([{"type": "raw_text", "text": str(c)} for c in cells])
-    blocks.append({
-        "type": "table",
-        "column_settings": [{}, {"align": "right"}, {"is_wrapped": True}, {}, {}, {"is_wrapped": True}],
-        "rows": trows,
-    })
+        data.append([r["id"], f"{r['currency']} {r['amount']:,.2f}", r["reason"], due, r["lean"],
+                     r["customer_name"] or "—"])
+    blocks.append(table_block(["Dispute", "Amount", "Reason", "Due", "Lean", "Customer"], data,
+                              column_settings=[{}, {"align": "right"}, {"is_wrapped": True}, {}, {}, {"is_wrapped": True}]))
     if overflow:
-        blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": f"_…and {overflow} more (see the text fallback / digest.json)._"}})
-    blocks.append({"type": "context", "elements": [{"type": "mrkdwn", "text": FOOTER}]})
+        blocks.append(section_block(f"_…and {overflow} more (see the text fallback / digest.json)._"))
+    blocks.append(context_block(FOOTER))
     return blocks
 
 
