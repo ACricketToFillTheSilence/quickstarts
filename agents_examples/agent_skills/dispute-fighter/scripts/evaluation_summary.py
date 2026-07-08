@@ -81,7 +81,13 @@ def build(data, now, title=None):
     text = "\n".join([f"🛡️ *{title}*", headline, "", "```", ascii_table(headers, rows), "```", f"_{FOOTER}_"])
     blocks = [header_block(f"🛡️ {title}"), section_block(headline),
               table_block(headers, rows, column_settings=col_settings), context_block(FOOTER)]
-    return text, blocks
+    md_lines = [f"🛡️ {title}", headline, "",
+                "| " + " | ".join(headers) + " |", "|" + "---|" * len(headers)]
+    for r in rows:
+        md_lines.append("| " + " | ".join(str(c).replace("|", "\\|") for c in r) + " |")
+    md_lines += ["", f"_{FOOTER}_"]
+    markdown = "\n".join(md_lines)
+    return text, blocks, markdown
 
 
 def main():
@@ -95,11 +101,12 @@ def main():
            else dt.datetime.now(dt.timezone.utc))
     with open(args.input) as f:
         data = json.load(f)
-    text, blocks = build(data, now, args.title)
+    text, blocks, markdown = build(data, now, args.title)
     with open(args.out, "w") as f:
-        json.dump({"text": text, "blocks": blocks}, f, indent=2)
-    print(text)
-    print(f"\n(Block Kit `blocks` for a native Slack table written to {args.out} — post with `blocks`.)")
+        json.dump({"text": text, "markdown": markdown, "blocks": blocks}, f, indent=2)
+    print(markdown)
+    print(f"\n(Wrote {args.out}: post `markdown` via an OAuth Slack MCP connector, or `blocks` via "
+          "bot-token/SDK. `text` is the plain fallback.)")
 
 
 if __name__ == "__main__":

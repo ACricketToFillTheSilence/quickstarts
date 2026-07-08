@@ -31,6 +31,10 @@ def do_list():
         print(f"• {role}{tag}\n    {ROLE_DESCRIPTIONS.get(role,'')}")
         print(f"    Agent connectors: {', '.join(SUPPORTED_CONNECTORS.get(role, [])) or '—'}\n")
     print("• storage — generated packages + learnings/pitfalls are saved LOCALLY (storage.local_dir).\n")
+    print("Money fields (dispute_fee_cents, evaluation.min_amount_cents, evaluation.high_value_cents):")
+    print("  an int OR a per-currency map like {\"USD\":50000,\"EUR\":45000,\"default\":40000}. Values are in")
+    print("  the currency's SMALLEST UNIT (cents for USD/EUR; WHOLE units for zero-decimal like JPY, so")
+    print("  {\"JPY\":50000} = 50000 yen). No FX conversion. Use a map on multi-currency accounts.\n")
     print("Catalog grows over time — see docs.airbyte.com/ai-agents/connectors for the latest.")
 
 

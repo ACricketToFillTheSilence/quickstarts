@@ -185,6 +185,16 @@ def _due_phrase(days_left):
     return f"due in {int(days_left)}d"
 
 
+def _due_cell(r, thresholds, dot=True):
+    """Due-date cell. With `dot`, prefixes the RAG urgency marker (🔴 ≤red / 🟠 ≤orange / 🟢 beyond /
+    ⚪ none) — used by the Markdown and Block Kit tables. The monospace code-block form passes
+    dot=False so emoji double-width doesn't break column alignment."""
+    base = _due_phrase(r["days_left"])
+    if dot:
+        base = f"{_emoji(r['days_left'], thresholds)} {base}"
+    return base + " (reminder)" if r.get("reminder") else base
+
+
 FOOTER = ("Paste `evaluate <dispute-id>` into Claude (with the dispute-fighter skill) to run the full "
           "evaluation — it recommends fight or accept and builds the evidence package if worth fighting. "
           "`SKIP` = below your amount threshold; `EXPIRED` = deadline passed. No auto-submit.")
@@ -230,7 +240,7 @@ def to_slack_mrkdwn(rows, now, thresholds, since=None):
     if not rows:
         return f"🛡️ *{_title(now)}*\n{_empty_msg(since)}"
     data = [[r["id"], r["amount_display"], r["reason"],
-             _due_phrase(r["days_left"]), r["lean"], (r["customer_name"] or "")[:18]] for r in rows]
+             _due_cell(r, thresholds, dot=False), r["lean"], (r["customer_name"] or "")[:18]] for r in rows]
     table = ascii_table(["Dispute", "Amount", "Reason", "Due", "Lean", "Customer"], data)
     return "\n".join([f"🛡️ *{_title(now)}*", _headline(rows, thresholds, since), "",
                       "```", table, "```", f"_{FOOTER}_"])
@@ -247,8 +257,7 @@ def to_slack_blocks(rows, now, thresholds, since=None):
     shown, overflow = rows[:90], max(0, len(rows) - 90)
     data = []
     for r in shown:
-        due = _due_phrase(r["days_left"]) + (" (reminder)" if r.get("reminder") else "")
-        data.append([r["id"], r["amount_display"], r["reason"], due, r["lean"],
+        data.append([r["id"], r["amount_display"], r["reason"], _due_cell(r, thresholds), r["lean"],
                      r["customer_name"] or "—"])
     blocks.append(table_block(["Dispute", "Amount", "Reason", "Due", "Lean", "Customer"], data,
                               column_settings=[{}, {"align": "right"}, {"is_wrapped": True}, {}, {}, {"is_wrapped": True}]))
@@ -256,6 +265,29 @@ def to_slack_blocks(rows, now, thresholds, since=None):
         blocks.append(section_block(f"_…and {overflow} more (see the text fallback / digest.json)._"))
     blocks.append(context_block(FOOTER))
     return blocks
+
+
+def to_markdown(rows, now, thresholds, since=None):
+    """A `|`-delimited (GFM) Markdown table message — for OAuth **MCP Slack connectors** that accept
+    only a Markdown string (no Block Kit `blocks`, no bot token). Such connectors typically render a
+    Markdown table as a native Slack table. Post THIS string in the connector path."""
+    if not rows:
+        return f"🛡️ {_title(now)}\n{_empty_msg(since)}"
+
+    def esc(v):
+        return str(v).replace("|", "\\|")
+
+    lines = [f"🛡️ {_title(now)}", _headline(rows, thresholds, since), "",
+             "| Dispute | Amount | Reason | Due | Lean | Customer |",
+             "|---|---|---|---|---|---|"]
+    for r in rows[:90]:
+        cells = [r["id"], r["amount_display"], r["reason"], _due_cell(r, thresholds), r["lean"],
+                 r["customer_name"] or "—"]
+        lines.append("| " + " | ".join(esc(c) for c in cells) + " |")
+    if len(rows) > 90:
+        lines.append(f"_…and {len(rows) - 90} more._")
+    lines += ["", f"_{FOOTER}_"]
+    return "\n".join(lines)
 
 
 # ---------------- data access ----------------
@@ -291,6 +323,9 @@ async def fetch_open_disputes():
 
 
 def post_to_slack(text, blocks=None, default_channel=None):
+    """Bot-token path only: posts via the Slack Web API with a raw SLACK_BOT_TOKEN and sends `blocks`
+    (native table). OAuth MCP Slack connectors have no bot token and don't accept `blocks` — in that
+    environment don't use --post; post the `markdown` string (to_markdown) via the connector instead."""
     token = os.environ.get("SLACK_BOT_TOKEN")
     channel = os.environ.get("SLACK_CHANNEL") or default_channel
     if not (token and channel):
@@ -359,18 +394,21 @@ def main():
     rows = triage(disputes, now, cfg)
     for r in rows:
         r["reminder"] = r["id"] in reminder_ids
-    text = to_slack_mrkdwn(rows, now, thresholds, since=watermark)      # notification fallback
-    blocks = to_slack_blocks(rows, now, thresholds, since=watermark)    # native Slack layout
+    text = to_slack_mrkdwn(rows, now, thresholds, since=watermark)      # code-block fallback / notification
+    blocks = to_slack_blocks(rows, now, thresholds, since=watermark)    # bot-token / SDK path (Block Kit table)
+    markdown = to_markdown(rows, now, thresholds, since=watermark)      # OAuth MCP-connector path (post this string)
     with open(args.out, "w") as f:
         json.dump({"generated_at": now.isoformat(), "since": watermark.isoformat() if watermark else None,
                    "count": len(rows), "reminders": len(reminder_ids),
-                   "text": text, "blocks": blocks, "disputes": rows}, f, indent=2)
+                   "text": text, "markdown": markdown, "blocks": blocks, "disputes": rows}, f, indent=2)
     if args.post:
+        # --post uses the Slack Web API with a bot token; it sends `blocks` (native table).
         post_to_slack(text, blocks=blocks, default_channel=digest_cfg.get("channel"))
         save_watermark(cfg, now)  # only advance the watermark once it's actually posted
     else:
-        print(text)
-        print("\n(Block Kit `blocks` for a native Slack layout written to " + args.out + ")")
+        print(markdown)
+        print(f"\n(Wrote {args.out}: `markdown` = post via an OAuth Slack MCP connector; "
+              "`blocks` = post via bot-token/SDK `--post`; `text` = plain fallback.)")
 
 
 if __name__ == "__main__":

@@ -91,14 +91,27 @@ the command line. Steps:
    Keep it short — accept the default `entity`/`match_field` unless the user has a reason to change it,
    and only ask follow-ups (e.g. WooCommerce's `billing.email`, Amazon's order-id matching) when the
    chosen connector needs them (see [references/configuration.md](references/configuration.md)).
-2. Also confirm the **digest channel**, the **dispute fee** (`stripe.dispute_fee_cents`) if relevant,
-   a **minimum dispute amount worth evaluating** (`evaluation.min_amount_cents`) — e.g. "$500"
-   becomes `50000`; below it, disputes are marked SKIP; default 0 = evaluate everything — and a
-   **minimum winnability** (`evaluation.min_winnability`, 0..1) — the win-probability floor the company
-   will fight below which it accepts; default 0 = no floor, and note anything above ~0.6 fights almost
-   nothing (Stripe's realistic ceiling). Generated
-   packages and the self-heal knowledge base save **locally** to `storage.local_dir` (default
-   `~/dispute-fighter-data`) — only ask about this if they want a different local path.
+2. Confirm a few settings:
+   - **Digest channel** — where the digest posts.
+   - **Money settings** — the dispute fee (`stripe.dispute_fee_cents`), the minimum amount worth
+     evaluating (`evaluation.min_amount_cents`; below it → SKIP), and the high-value FIGHT cutoff
+     (`evaluation.high_value_cents`). These are **currency-sensitive, so ask first whether the account
+     processes more than one currency:**
+     - *One currency:* note which. Set each as a single int in that currency's **smallest unit** —
+       cents for 2-decimal currencies (USD/EUR: `$500` → `50000`), but **whole units** for zero-decimal
+       currencies (JPY/KRW: `¥50,000` → `50000`, **not** `500`).
+     - *Multiple currencies:* set each as a **per-currency map**, e.g.
+       `{"USD": 50000, "EUR": 45000, "default": 40000}` — one entry per currency they use plus a
+       `default`, each in that currency's smallest unit. **Don't use a lone scalar across currencies** —
+       `50000` would mean $500 for USD but ¥50,000 for JPY. No FX conversion is ever applied.
+     - Defaults: `min_amount_cents` 0 (evaluate everything), `high_value_cents` 20000, `dispute_fee_cents`
+       your Stripe fee. In **MCP mode**, peek at the currencies on recent disputes via the Stripe
+       connector and pre-fill the currency list so the user only fills in the ones they actually use.
+   - **Minimum winnability** (`evaluation.min_winnability`, 0..1) — a **currency-independent**
+     probability floor; below it → ACCEPT. Default 0 = no floor; note anything above ~0.6 fights almost
+     nothing (Stripe's ~60% ceiling).
+   - **Storage** — packages + the self-heal knowledge base save **locally** to `storage.local_dir`
+     (default `~/dispute-fighter-data`); only ask if they want a different path.
 3. Persist their answers. **Pick the path that fits the surface:**
    - **Chat / Claude.ai with a Project (persists, no reinstall):** build the config, then run
      `python scripts/configure.py --emit config.json` and give the user the emitted block to paste
@@ -172,10 +185,11 @@ individual recommendations/packages. Keep going through the whole list even if s
 don't stop after the first. Apply the amount threshold (Step 2) to each, and still stop for human
 review at the end — never auto-submit any of them.
 
-If the consolidated summary is being **shared to Slack**, render it as a native Slack table: author a
-JSON of the results (`{"disputes":[{id, amount, currency, reason, verdict, due, package}]}`) and run
-[scripts/evaluation_summary.py](scripts/evaluation_summary.py) to get `text` + Block Kit `blocks`
-(same table styling as the digest). Post with `blocks`. In chat, a plain markdown summary is fine.
+If the consolidated summary is being **shared to Slack**, render it as a table: author a JSON of the
+results (`{"disputes":[{id, amount, currency, reason, verdict, due, package}]}`) and run
+[scripts/evaluation_summary.py](scripts/evaluation_summary.py), which writes `markdown`, `blocks`, and
+`text` (same forms/styling as the digest). Post the **`markdown`** string on an OAuth Slack MCP
+connector, or **`blocks`** via a bot token / SDK. In chat, the plain markdown is fine as-is.
 
 ### Step 1 — Gather context
 
@@ -391,38 +405,42 @@ the loop: outcomes shape future recommendations and packages.
      the `min_winnability` floor — it deliberately does **not** gather evidence. `SKIP` means below
      `evaluation.min_amount_cents`.
    - *Urgency* is driven by `evidence_details.due_by`.
-2. **Format the message.** The script writes `digest.json` containing **both** a native **Block Kit
-   `blocks`** layout (the preferred, table-like Slack rendering) and a plain **`text`** version (the
-   notification fallback). Disputes are sorted by soonest deadline then largest amount.
-3. **Post to Slack, then mark it posted.** Post to the configured channel, **passing `blocks` (from
-   `digest.json`) plus `text` as the fallback** — e.g. via the connected Slack tool / Airbyte Slack
-   connector `messages.create` with `{channel, text, blocks}`, or set `SLACK_BOT_TOKEN` +
-   `SLACK_CHANNEL` and use `--post` (which sends both). Passing `blocks` is what gives the native
-   Slack look instead of a monospace block. **After a successful post, advance the watermark** so the
-   next run only shows newer disputes: `--post` does this automatically; if you posted via a Slack tool
-   instead, run `daily_dispute_digest.py --mark-posted`. Don't @-mention individuals unless asked.
+2. **Format the message.** The script writes `digest.json` with three ready-to-post forms, so you pick
+   the one your Slack path accepts: **`markdown`** (a `|`-delimited Markdown table), **`blocks`**
+   (native Block Kit `table`), and **`text`** (a plain code-block table, universal fallback). Disputes
+   are sorted by soonest deadline then largest amount.
+3. **Post to Slack — the *how* depends on how Slack is connected:**
+   - **OAuth MCP Slack connector** (Cowork / Claude Desktop — no bot token, `blocks` not accepted):
+     post the **`markdown`** string as the message. These connectors render a Markdown table as a
+     native Slack table. **Do not** try to pass `blocks` here — it will be dropped or rejected.
+   - **Bot token / SDK** (a raw `SLACK_BOT_TOKEN` in the env): use `--post`, which calls the Slack Web
+     API and sends **`blocks`** (native table) with `text` as the notification fallback.
+
+   **After a successful post, advance the watermark** so the next run only shows newer disputes:
+   `--post` does this automatically; if you posted the `markdown` via a connector, run
+   `daily_dispute_digest.py --mark-posted`. Don't @-mention individuals unless asked.
 
 ### Digest format
 
-The digest posts as native **Slack Block Kit**, and the disputes render in a real Slack **`table`
-block** (the native table type added Aug 2025 — not a monospace/CLI code block). Structure:
+The disputes render as a table in all three forms (`markdown` pipe table, `blocks` native table, `text`
+code-block). Structure:
 
-- **Header block:** `🛡️ Disputes needing a response — {date}`.
-- **Summary section:** `{N} new since last digest · {R} due-soon reminder(s) · {totals} at risk ·
+- **Header:** `🛡️ Disputes needing a response — {date}`.
+- **Summary:** `{N} new since last digest · {R} due-soon reminder(s) · {totals} at risk ·
   {M} due within 48h`, where `{totals}` lists **per-currency** amounts (e.g. `USD 129.00 + EUR 120.00`)
   — currencies are never summed together (no FX conversion). The reminder count shows only when
   re-surfaced disputes are present; says "open" instead of "new since last digest" under `--all`;
   appends "· {k} below evaluate threshold" when any are below the amount floor.
-- **`table` block** with a header row + one row per dispute, columns: *Dispute · Amount · Reason · Due
-  · Lean · Customer* (Amount right-aligned; Reason/Customer wrap). The **Lean** cell carries the hint
-  (`FIGHT`/`ACCEPT`/`REVIEW`/`SKIP`/`EXPIRED`); a re-surfaced item shows "(reminder)" in its Due cell.
-- **Context footer:** `Paste evaluate <dispute-id> into Claude …` — copy a Dispute id to work it.
+- **Table** — columns *Dispute · Amount · Reason · Due · Lean · Customer*. In the `markdown` and
+  `blocks` forms the **Due** cell is prefixed with an urgency dot (🔴 ≤ `red` threshold · 🟠 ≤ `orange`
+  · 🟢 beyond · ⚪ no deadline); the plain `text` code-block omits the dot so its monospace columns stay
+  aligned. A re-surfaced item is marked "(reminder)". The **Lean** cell carries the hint
+  (`FIGHT`/`ACCEPT`/`REVIEW`/`SKIP`/`EXPIRED`). (In `blocks`: Amount right-aligned, Reason/Customer wrap.)
+- **Footer:** `Paste evaluate <dispute-id> into Claude …` — copy a Dispute id to work it.
 
-Slack's table block allows ≤100 rows / ≤20 cols / ≤10k chars, so very large digests show the first ~90
-disputes and note the overflow (the full list is in the `text` fallback / `digest.json`). The message
-always includes the plain-`text` code-block table too, as the notification fallback and for any client
-that doesn't render the table block. If there are no new disputes, it's just the header + "✅ No new
-disputes since the last digest."
+The `blocks` table caps at ≤100 rows / ≤20 cols / ≤10k chars; very large digests show the first ~90 and
+note the overflow (the full list stays in `text` / `digest.json`). If there are no new disputes, it's
+just the header + "✅ No new disputes since the last digest."
 
 **Acting on `evaluate dp_<id>`:** this phrase is the handoff from the digest. When a user sends it, run
 the full workflow (Steps 0–4) for that dispute id — the real evaluation, an honest fight/accept
