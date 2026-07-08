@@ -140,10 +140,11 @@ To run the digest **daily**, schedule it with your Claude client's scheduling fe
 task) with a prompt like *"Run the dispute-fighter daily digest and post it to our disputes channel."*
 The config includes defaults of 9:00 AM and a dedicated channel. Adjust these to the time and channel of
 your choosing. The disputes post as a Slack **table** (Dispute · Amount · Reason · Due · Lean ·
-Customer) under a header + summary. The script emits three forms in `digest.json`: post **`markdown`**
-on an OAuth Slack MCP connector (Cowork/Desktop — no bot token; renders a native table), or **`blocks`**
-via a bot token / SDK (`--post`); `text` is a plain fallback. To work one, copy its dispute id and
-paste `evaluate <id>` into Claude.
+Customer) under a header + summary. The script emits three forms in `digest.json`: **`markdown`** is the
+**default** — post it as the message on an OAuth Slack MCP connector (Cowork/Desktop, which posts as the
+user with no bot token and renders a native table). Only with a bot token / SDK use **`blocks`** via
+`--post`; the ASCII `text` form is a last-resort fallback. To work one, copy its dispute id and paste
+`evaluate <id>` into Claude.
 
 **Windows, macOS, and Linux are all supported.** The Claude client's scheduler runs in the cloud, so
 it's OS-independent. If you'd rather schedule the script on your own machine, use **cron** (macOS/Linux)

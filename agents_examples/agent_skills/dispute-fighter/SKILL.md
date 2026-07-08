@@ -405,16 +405,21 @@ the loop: outcomes shape future recommendations and packages.
      the `min_winnability` floor — it deliberately does **not** gather evidence. `SKIP` means below
      `evaluation.min_amount_cents`.
    - *Urgency* is driven by `evidence_details.due_by`.
-2. **Format the message.** The script writes `digest.json` with three ready-to-post forms, so you pick
-   the one your Slack path accepts: **`markdown`** (a `|`-delimited Markdown table), **`blocks`**
-   (native Block Kit `table`), and **`text`** (a plain code-block table, universal fallback). Disputes
-   are sorted by soonest deadline then largest amount.
-3. **Post to Slack — the *how* depends on how Slack is connected:**
-   - **OAuth MCP Slack connector** (Cowork / Claude Desktop — no bot token, `blocks` not accepted):
-     post the **`markdown`** string as the message. These connectors render a Markdown table as a
-     native Slack table. **Do not** try to pass `blocks` here — it will be dropped or rejected.
-   - **Bot token / SDK** (a raw `SLACK_BOT_TOKEN` in the env): use `--post`, which calls the Slack Web
-     API and sends **`blocks`** (native table) with `text` as the notification fallback.
+2. **Format the message.** The script writes `digest.json` with three ready-to-post forms: **`markdown`**
+   (a `|`-delimited Markdown table — **the default to post**), **`blocks`** (native Block Kit `table`,
+   bot-token/SDK only), and **`text`** (a plain ASCII code-block table, last-resort fallback). Disputes
+   are sorted by soonest deadline then largest amount. The script also prints the `markdown` form to
+   stdout by default.
+3. **Post to Slack — default to the `markdown` table.** Unless you are posting through a raw
+   `SLACK_BOT_TOKEN`, **post the `markdown` string from `digest.json` as the message.** This is the
+   default and the right choice for the normal **user path** — posting via an OAuth MCP Slack connector
+   (Cowork / Claude Desktop, which posts *as the user*, has no bot token, and does **not** accept
+   `blocks`). The connector renders the Markdown table as a native Slack table. Do **not** pass `blocks`
+   on the connector path (it's dropped/rejected), and do **not** post the ASCII `text` here.
+   - **Only with a bot token / SDK:** use `--post`, which sends **`blocks`** (native Block Kit table)
+     with `text` as the notification fallback.
+   - The plain `text` (ASCII code-block) form is a **last resort** — use it only on a surface that
+     renders neither Markdown nor Block Kit.
 
    **After a successful post, advance the watermark** so the next run only shows newer disputes:
    `--post` does this automatically; if you posted the `markdown` via a connector, run
