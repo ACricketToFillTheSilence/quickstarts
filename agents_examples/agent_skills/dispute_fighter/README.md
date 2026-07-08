@@ -186,3 +186,24 @@ assets/evidence_package_template.md
 #   pending/ · won/ · lost/  (package folders)   index.json (ledger)
 #   learnings.md · pitfalls.md  (self-heal knowledge base)   digest_state.json (last-posted watermark)
 ```
+
+## Development
+
+The repo also contains an `evals/` directory. **This is developer-only scaffolding — it is not part
+of the shipped skill.** `package_self.py` excludes it from the packaged `.skill`, so it never lands in
+an end user's skills directory. (If you install by copying the raw folder, it's harmless — nothing in
+the skill loads it at runtime.)
+
+```
+evals/
+  evals.json                        # behavioral eval cases (prompt → expected recommendation/output)
+  fixtures/                         # sample dispute_context.json inputs, one per scenario
+```
+
+The cases cover the skill's key decision paths — winnable product-not-received, "accept the loss" on a
+low-value fraudulent digital charge, subscription-cancellation rebuttals, duplicate charges, Visa CE 3.0
+eligibility, and order-data gift-shipping. Each entry pairs a natural-language prompt with the fixture(s)
+to feed and the expected behavior. Run them by starting a conversation with the skill installed, feeding
+the referenced fixture as `dispute_context.json`, and checking Claude's response against
+`expected_output`. Update or add a case here whenever you change the evaluation rubric, evidence
+mappings, or reason-code playbook so behavior doesn't silently drift.
