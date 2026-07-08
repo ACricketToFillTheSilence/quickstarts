@@ -46,8 +46,8 @@ def do_scaffold(path):
           "then run --validate.")
 
 
-CONFIG_START = "=== DISPUTE_FIGHTER CONFIG (do not remove) ==="
-CONFIG_END = "=== END DISPUTE_FIGHTER CONFIG ==="
+CONFIG_START = "=== DISPUTE-FIGHTER CONFIG (do not remove) ==="
+CONFIG_END = "=== END DISPUTE-FIGHTER CONFIG ==="
 
 
 def do_emit(path):

@@ -48,7 +48,7 @@ only if you want the digest to post itself (otherwise Claude posts it via a conn
 
 ## Setup
 
-**Easiest — just ask Claude.** Install the skill, then say *"set up dispute_fighter"* (or *"configure
+**Easiest — just ask Claude.** Install the skill, then say *"set up dispute-fighter"* (or *"configure
 my dispute sources"*). Claude walks you through which tool you use for each role in plain conversation
 and writes the config file for you — no YAML, no command line. You just connect Airbyte once via the
 Agent MCP (browser OAuth, see Prerequisites) — no credentials typed anywhere.
@@ -137,7 +137,7 @@ python scripts/review_outcomes.py --finalize dp_123 won
 ```
 
 To run the digest **daily**, schedule it with your Claude client's scheduling feature (a cron-style
-task) with a prompt like *"Run the dispute_fighter daily digest and post it to our disputes channel."*
+task) with a prompt like *"Run the dispute-fighter daily digest and post it to our disputes channel."*
 The config includes defaults of 9:00 AM and a dedicated channel. Adjust these to the time and channel of
 your choosing. The disputes post in a native Slack **table** block (Dispute · Amount · Reason · Due ·
 Lean · Customer) under a header + summary, with a plain-text fallback for notifications. To work one,

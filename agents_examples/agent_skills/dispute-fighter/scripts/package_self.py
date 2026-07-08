@@ -2,7 +2,7 @@
 """Repackage this skill — including the user's config.json — into a distributable .skill file.
 
 Run this at the end of guided setup (or any time the config changes) to produce a pre-configured
-`dispute_fighter.skill` the user can reinstall or share. A `.skill` file is just a zip of the skill
+`dispute-fighter.skill` the user can reinstall or share. A `.skill` file is just a zip of the skill
 folder, so this needs no dependencies.
 
 Why bundle config: the loader reads config.json from the skill folder at runtime, so an in-place
@@ -14,7 +14,7 @@ credentials live in MCP OAuth or environment variables. This script refuses to b
 looks like it contains secret-ish keys, so nothing sensitive ends up in a shared package.
 
 Usage:
-    python scripts/package_self.py                 # writes ./dispute_fighter.skill
+    python scripts/package_self.py                 # writes ./dispute-fighter.skill
     python scripts/package_self.py --out ~/Desktop  # writes to a chosen directory
 """
 import argparse
@@ -71,7 +71,7 @@ def main():
     args = ap.parse_args()
 
     root = _skill_root()
-    name = os.path.basename(root)  # "dispute_fighter"
+    name = os.path.basename(root)  # "dispute-fighter"
     if not os.path.exists(os.path.join(root, "SKILL.md")):
         sys.exit(f"SKILL.md not found in {root}; is this the skill folder?")
     _check_config_secret_free(root)

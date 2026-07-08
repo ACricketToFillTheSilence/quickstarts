@@ -185,7 +185,7 @@ def _due_phrase(days_left):
     return f"due in {int(days_left)}d"
 
 
-FOOTER = ("Paste `evaluate <dispute-id>` into Claude (with the dispute_fighter skill) to run the full "
+FOOTER = ("Paste `evaluate <dispute-id>` into Claude (with the dispute-fighter skill) to run the full "
           "evaluation — it recommends fight or accept and builds the evidence package if worth fighting. "
           "`SKIP` = below your amount threshold; `EXPIRED` = deadline passed. No auto-submit.")
 

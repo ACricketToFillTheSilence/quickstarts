@@ -6,7 +6,7 @@ new org's stack.
 
 ## Easiest path: guided setup (no file editing)
 
-Most users shouldn't edit these files by hand. Ask the skill to **"set up dispute_fighter"** and it
+Most users shouldn't edit these files by hand. Ask the skill to **"set up dispute-fighter"** and it
 runs a short conversation — which tool for each role — then writes and validates `config.json` for you.
 Under the hood it uses `scripts/configure.py` (`--list` to show options, `--scaffold` to start from
 safe defaults, `--validate` to check the result). The rest of this doc is the reference for what those
@@ -28,7 +28,7 @@ To set up a new org: `cp config.example.yaml config.yaml` and edit. YAML needs P
 The Chat surface can't persist a `config.json` (the installed skill is read-only and the sandbox is
 wiped between sessions). Instead, keep the config in the **Project**: run
 `python scripts/configure.py --emit config.json` and paste the emitted block — bounded by
-`=== DISPUTE_FIGHTER CONFIG (do not remove) ===` markers — into the Project's custom instructions (or a
+`=== DISPUTE-FIGHTER CONFIG (do not remove) ===` markers — into the Project's custom instructions (or a
 Project knowledge file). Each session the skill finds that block and rebuilds a scratch `config.json`
 from it, so your settings persist and you never reinstall. To change settings, edit the block.
 

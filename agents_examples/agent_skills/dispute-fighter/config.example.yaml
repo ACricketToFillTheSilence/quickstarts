@@ -1,5 +1,5 @@
 # ───────────────────────────────────────────────────────────────────────────
-# dispute_fighter configuration
+# dispute-fighter configuration
 #
 # Copy this file to `config.yaml` (same folder) and edit it for your org.
 # Everything goes through the Airbyte Agent SDK, so "switching tools" usually
