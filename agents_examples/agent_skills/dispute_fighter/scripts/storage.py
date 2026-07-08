@@ -77,10 +77,12 @@ class LocalStorage:
     def move(self, dispute_id, outcome):  # outcome in {"won","lost"}
         src = os.path.join(self.base, "pending", dispute_id)
         dest = os.path.join(self.base, outcome, dispute_id)
+        if not os.path.exists(src):
+            # No pending package to preserve — signal the caller so it doesn't falsely finalize.
+            raise FileNotFoundError(f"pending package not found for {dispute_id} at {src}")
         if os.path.exists(dest):
             shutil.rmtree(dest)
-        if os.path.exists(src):
-            shutil.move(src, dest)
+        shutil.move(src, dest)
         return dest
 
 

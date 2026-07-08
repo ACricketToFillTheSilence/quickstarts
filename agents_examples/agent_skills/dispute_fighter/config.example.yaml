@@ -1,5 +1,5 @@
 # ───────────────────────────────────────────────────────────────────────────
-# dispute-fighter configuration
+# dispute_fighter configuration
 #
 # Copy this file to `config.yaml` (same folder) and edit it for your org.
 # Everything goes through the Airbyte Agent SDK, so "switching tools" usually
@@ -13,12 +13,15 @@
 # Stripe is the fixed system of record for disputes. You can tune account
 # specifics, but the connector itself is pinned — disputes always come from Stripe.
 stripe:
+  # Money fields (here + under `evaluation`) accept an int in cents (applies to all currencies) OR a
+  # per-currency map, e.g. {USD: 1500, EUR: 1300, default: 1500}. No FX conversion — each dispute is
+  # judged in its own currency and the digest totals per currency.
   dispute_fee_cents: 1500        # your per-dispute Stripe fee. This default is equivalent to $15.00
   default_currency: usd
 
-# Evaluation policy (amounts in cents).
+# Evaluation policy (amounts in cents; each may be an int or a per-currency map).
 evaluation:
-  min_amount_cents: 0            # skip evaluating disputes below this (0 = evaluate all). 50000 = $500
+  min_amount_cents: 0            # skip evaluating disputes below this (0 = evaluate all). 50000 = $500. Or {USD: 50000, EUR: 45000}
   high_value_cents: 20000        # digest quick-lean tips to FIGHT at/above this even at moderate odds. 20000 = $200
   min_winnability: 0.0           # win-probability floor (0..1) the company will fight. 0 = no floor; 0.5 = skip worse-than-coin-flip
 

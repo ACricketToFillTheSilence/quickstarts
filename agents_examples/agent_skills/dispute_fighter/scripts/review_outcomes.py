@@ -82,9 +82,10 @@ def do_finalize(cfg, dispute_id, outcome):
     storage, note = resolve_storage(cfg)
     try:
         location = storage.move(dispute_id, outcome)
-    except Exception as e:
-        location = rec.get("location")
-        print(f"WARNING: move failed ({e}); marking ledger only.", file=sys.stderr)
+    except FileNotFoundError as e:
+        # Don't mark the ledger won/lost if we couldn't preserve the package — leave it pending.
+        sys.exit(f"Not finalizing {dispute_id}: {e}. The ledger stays 'pending'. "
+                 "Re-save the package (save_package.py) or investigate before finalizing.")
     ledger.upsert(dispute_id, status=outcome, location=str(location))
     print(f"Finalized {dispute_id} as {outcome} ({note}); moved to {location}.")
 

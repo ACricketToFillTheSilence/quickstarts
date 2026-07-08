@@ -48,7 +48,7 @@ only if you want the digest to post itself (otherwise Claude posts it via a conn
 
 ## Setup
 
-**Easiest — just ask Claude.** Install the skill, then say *"set up dispute-fighter"* (or *"configure
+**Easiest — just ask Claude.** Install the skill, then say *"set up dispute_fighter"* (or *"configure
 my dispute sources"*). Claude walks you through which tool you use for each role in plain conversation
 and writes the config file for you — no YAML, no command line. You just connect Airbyte once via the
 Agent MCP (browser OAuth, see Prerequisites) — no credentials typed anywhere.
@@ -60,7 +60,7 @@ scripts/configure.py --emit config.json`) for you to paste into your **Project's
 from it — change settings by editing the block, never reinstalling.
 
 **On Claude Code / a writable install**, Claude can instead **repackage the skill with your config
-baked in** (`python scripts/package_self.py`) to produce a pre-configured `dispute-fighter.skill` to
+baked in** (`python scripts/package_self.py`) to produce a pre-configured ` .skill` to
 reinstall or share. This is optional — if the installed folder is writable, the `config.json` Claude
 wrote is already active. Either way the config is safe to store/share: it holds no secrets (credentials
 live in MCP OAuth / env vars), and the packager refuses to bundle anything secret-like.
@@ -137,7 +137,7 @@ python scripts/review_outcomes.py --finalize dp_123 won
 ```
 
 To run the digest **daily**, schedule it with your Claude client's scheduling feature (a cron-style
-task) with a prompt like *"Run the dispute-fighter daily digest and post it to our disputes channel."*
+task) with a prompt like *"Run the dispute_fighter daily digest and post it to our disputes channel."*
 The config includes defaults of 9:00 AM and a dedicated channel. Adjust these to the time and channel of
 your choosing. The disputes post in a native Slack **table** block (Dispute · Amount · Reason · Due ·
 Lean · Customer) under a header + summary, with a plain-text fallback for notifications. To work one,
@@ -182,16 +182,16 @@ scripts/
   review_outcomes.py              # self-heal: scan resolved disputes, move to won/lost
 assets/evidence_package_template.md
 
-# Created at runtime in storage.local_dir (~/dispute-fighter-data), not shipped:
+# Created at runtime in storage.local_dir (~/ -data), not shipped:
 #   pending/ · won/ · lost/  (package folders)   index.json (ledger)
 #   learnings.md · pitfalls.md  (self-heal knowledge base)   digest_state.json (last-posted watermark)
 ```
 
-## Development
+### Development
 
-The repo also contains an `evals/` directory. **This is developer-only scaffolding — it is not part
+The repo also contains an `evals/` directory. **This is developer-only scaffolding; it is not part
 of the shipped skill.** `package_self.py` excludes it from the packaged `.skill`, so it never lands in
-an end user's skills directory. (If you install by copying the raw folder, it's harmless — nothing in
+an end user's skills directory. (If you install by copying the raw folder, nothing in
 the skill loads it at runtime.)
 
 ```

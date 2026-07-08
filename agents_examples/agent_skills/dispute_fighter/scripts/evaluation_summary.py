@@ -47,20 +47,23 @@ def build(data, now, title=None):
                 [header_block(f"🛡️ {title}"), section_block("No disputes evaluated.")])
 
     verdicts = Counter((d.get("verdict") or "—").upper() for d in disputes)
-    fight_total = 0.0
+    # Per-currency "recommended to fight" totals — never sum across currencies (no FX conversion).
+    fight_totals = {}
     for d in disputes:
         if (d.get("verdict") or "").upper() == "FIGHT":
             try:
-                fight_total += float(str(d.get("amount", "0")).replace(",", ""))
+                amt = float(str(d.get("amount", "0")).replace(",", ""))
             except (TypeError, ValueError):
-                pass
-    cur = next((str(d.get("currency", "")).upper() for d in disputes if d.get("currency")), "")
+                continue
+            cur = str(d.get("currency") or "").upper() or "?"
+            fight_totals[cur] = fight_totals.get(cur, 0.0) + amt
     parts = [f"{len(disputes)} evaluated"]
     for v in ("FIGHT", "ACCEPT", "SKIP"):
         if verdicts.get(v):
             parts.append(f"{verdicts[v]} {v.lower()}")
-    if fight_total:
-        parts.append(f"{cur} {fight_total:,.2f} recommended to fight")
+    if fight_totals:
+        totals = " + ".join(f"{cur} {amt:,.2f}" for cur, amt in sorted(fight_totals.items(), key=lambda kv: -kv[1]))
+        parts.append(f"{totals} recommended to fight")
     headline = " · ".join(parts)
 
     headers = ["Dispute", "Amount", "Reason", "Verdict", "Due", "Package"]

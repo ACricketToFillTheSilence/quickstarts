@@ -102,13 +102,16 @@ async def gather(cfg, dispute_id=None, charge_id=None):
         cust_id = (ctx.get("charge") or {}).get("customer") or disp.get("customer")
         if cust_id:
             ctx["customer"] = await stripe.execute("customers", "get", params={"id": cust_id})
-        for entity, key in [("invoices", "invoices"), ("subscriptions", "subscriptions"),
-                            ("refunds", "refunds"), ("payment_intents", "payment_intent")]:
+        # Related customer records — search EACH entity's own store (keyed by the plural entity name
+        # so each key holds that entity's list, not a duplicated customer-level result).
+        for entity in ("invoices", "subscriptions", "refunds", "payment_intents"):
+            if not cust_id:
+                continue
             try:
-                if cust_id:
-                    r = await stripe.context_store_search(
-                        query={"filter": {"eq": {"customer": cust_id}}}, limit=25)
-                    ctx[key] = r.get("data", r) if isinstance(r, dict) else r
+                r = await stripe.execute(entity, "context_store_search",
+                                         params={"query": {"filter": {"eq": {"customer": cust_id}}},
+                                                 "limit": 25})
+                ctx[entity] = r.get("data", r) if isinstance(r, dict) else r
             except Exception as e:
                 ctx.setdefault("_warnings", []).append(f"stripe.{entity}: {e}")
     finally:

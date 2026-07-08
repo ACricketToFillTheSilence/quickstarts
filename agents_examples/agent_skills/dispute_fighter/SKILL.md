@@ -1,5 +1,5 @@
 ---
-name: dispute-fighter
+name: dispute_fighter
 description: >-
   Evaluate whether a Stripe credit card dispute (chargeback) is worth fighting, and assemble a
   ready-to-submit evidence package to fight it. Pulls live context from Stripe plus your configured
@@ -123,7 +123,7 @@ the command line. Steps:
 6. **(Code/SDK installs only — skip on Chat/Project.) Repackage with the config to reinstall or share.**
    Once the config is written and validated, run `python scripts/package_self.py` — it bundles the
    skill *plus* `config.json` into a
-   fresh `dispute-fighter.skill` (refusing if the config somehow contains secret-like keys) and prints
+   fresh `dispute_fighter.skill` (refusing if the config somehow contains secret-like keys) and prints
    reinstall instructions. Relay those to the user: the output `.skill` path, and how to reinstall
    (Claude Code: `unzip -o <path> -d ~/.claude/skills/`; Claude Desktop: re-upload it under
    Settings → Capabilities → Skills). **Be clear that reinstalling is only needed to share the
@@ -142,8 +142,8 @@ config in the **Project** (which does persist) and rebuild the scratch file each
 
 **Config resolution — at the start of every run, load config in this order:**
 1. A **Project config block** — look in the Project's custom instructions (and knowledge files) for a
-   block between the marker lines `=== DISPUTE-FIGHTER CONFIG (do not remove) ===` and
-   `=== END DISPUTE-FIGHTER CONFIG ===`. If present, parse its JSON and **write it to `./config.json`**
+   block between the marker lines `=== DISPUTE_FIGHTER CONFIG (do not remove) ===` and
+   `=== END DISPUTE_FIGHTER CONFIG ===`. If present, parse its JSON and **write it to `./config.json`**
    in the working dir so the scripts can read it this session (it's scratch — the Project is the
    source of truth).
 2. Otherwise a writable **`config.json`** already next to the skill (Code/SDK installs).
@@ -398,10 +398,11 @@ The digest posts as native **Slack Block Kit**, and the disputes render in a rea
 block** (the native table type added Aug 2025 — not a monospace/CLI code block). Structure:
 
 - **Header block:** `🛡️ Disputes needing a response — {date}`.
-- **Summary section:** `{N} new since last digest · {R} due-soon reminder(s) · {CUR} {total} at risk ·
-  {M} due within 48h` (the reminder count shows only when re-surfaced disputes are present; says "open"
-  instead of "new since last digest" under `--all`; appends "· {k} below evaluate threshold" when any
-  are below the amount floor).
+- **Summary section:** `{N} new since last digest · {R} due-soon reminder(s) · {totals} at risk ·
+  {M} due within 48h`, where `{totals}` lists **per-currency** amounts (e.g. `USD 129.00 + EUR 120.00`)
+  — currencies are never summed together (no FX conversion). The reminder count shows only when
+  re-surfaced disputes are present; says "open" instead of "new since last digest" under `--all`;
+  appends "· {k} below evaluate threshold" when any are below the amount floor.
 - **`table` block** with a header row + one row per dispute, columns: *Dispute · Amount · Reason · Due
   · Lean · Customer* (Amount right-aligned; Reason/Customer wrap). The **Lean** cell carries the hint
   (`FIGHT`/`ACCEPT`/`REVIEW`/`SKIP`/`EXPIRED`); a re-surfaced item shows "(reminder)" in its Due cell.
@@ -421,7 +422,7 @@ gather evidence and decide properly.
 ### Scheduling
 
 The skill describes *what* to post; a scheduled task makes it *recur*. Set up a daily run with the
-`schedule` skill (a cron-style cloud agent) whose prompt is roughly: *"Run the dispute-fighter daily
+`schedule` skill (a cron-style cloud agent) whose prompt is roughly: *"Run the dispute_fighter daily
 digest and post it to the disputes channel."* The schedule needs the time, timezone, and target
 channel — keep those in the schedule, not hard-coded here, so they're easy to change.
 

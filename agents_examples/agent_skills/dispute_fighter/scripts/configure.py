@@ -46,8 +46,8 @@ def do_scaffold(path):
           "then run --validate.")
 
 
-CONFIG_START = "=== DISPUTE-FIGHTER CONFIG (do not remove) ==="
-CONFIG_END = "=== END DISPUTE-FIGHTER CONFIG ==="
+CONFIG_START = "=== DISPUTE_FIGHTER CONFIG (do not remove) ==="
+CONFIG_END = "=== END DISPUTE_FIGHTER CONFIG ==="
 
 
 def do_emit(path):
@@ -70,8 +70,9 @@ def do_validate(path):
     issues = validate_config(cfg)
     errors = [m for lvl, m in issues if lvl == "error"]
     warns = [m for lvl, m in issues if lvl == "warn"]
-    enabled = [(r, (cfg["sources"][r] or {}).get("connector"))
-               for r in ROLE_KEYS if cfg["sources"].get(r)]
+    sources = cfg.get("sources") or {}
+    enabled = [(r, (sources[r] or {}).get("connector"))
+               for r in ROLE_KEYS if sources.get(r)]
     print("Configured sources:")
     print(f"  stripe (pinned)")
     for r, c in enabled:

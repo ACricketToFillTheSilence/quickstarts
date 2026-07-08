@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Load and validate dispute-fighter configuration.
+"""Load and validate dispute_fighter configuration.
 
 The skill is portable: Stripe is pinned as the disputes system of record, but the
 auxiliary sources (customer comms, policy docs, internal chat) and the digest target
@@ -24,14 +24,17 @@ import sys
 DEFAULTS = {
     "stripe": {
         "connector": "stripe",      # pinned — the disputes system of record
+        # Money fields (here and in `evaluation`) may be an int in cents that applies to every
+        # currency, OR a per-currency map like {"USD": 1500, "EUR": 1300, "default": 1500}. No FX
+        # conversion is done — each dispute is judged in its own currency.
         "dispute_fee_cents": 1500,  # your Stripe dispute fee, for economics math
         "default_currency": "usd",
     },
-    # Evaluation policy. Amounts in cents (to match dispute_fee_cents).
+    # Evaluation policy. Amounts in cents (int, or a per-currency {CURRENCY: cents} map).
     "evaluation": {
         # Disputes below this amount aren't worth evaluating — the digest marks them SKIP and the
         # full evaluation recommends skipping unless the user insists. 0 = evaluate everything.
-        # e.g. 50000 = $500.
+        # e.g. 50000 = $500, or {"USD": 50000, "EUR": 45000}.
         "min_amount_cents": 0,
         # At/above this amount the digest's quick lean tips to FIGHT even at moderate win-odds
         # (big absolute upside). A separate knob from min_amount_cents. Default 20000 = $200.
@@ -120,11 +123,29 @@ SUPPORTED_CONNECTORS = {
 }
 
 
+def _validate_money(issues, label, value):
+    """A money field may be an int (all currencies) or a dict of {CURRENCY: int}. Report bad shapes."""
+    if value is None or isinstance(value, int):
+        return
+    if isinstance(value, dict):
+        for k, v in value.items():
+            if not isinstance(v, int):
+                issues.append(("error", f"{label}['{k}'] must be an integer (cents), got {type(v).__name__}."))
+    else:
+        issues.append(("error", f"{label} must be an integer (cents) or a per-currency map, got {type(value).__name__}."))
+
+
 def validate_config(cfg):
     """Return a list of (level, message). level is 'error' or 'warn'. Empty = clean."""
     issues = []
     if (cfg.get("stripe") or {}).get("connector") != "stripe":
         issues.append(("error", "stripe.connector must be 'stripe' (it is the pinned system of record)."))
+    _validate_money(issues, "stripe.dispute_fee_cents", (cfg.get("stripe") or {}).get("dispute_fee_cents"))
+    _validate_money(issues, "evaluation.min_amount_cents", (cfg.get("evaluation") or {}).get("min_amount_cents"))
+    _validate_money(issues, "evaluation.high_value_cents", (cfg.get("evaluation") or {}).get("high_value_cents"))
+    if cfg.get("sources") is None:
+        issues.append(("error", "sources is null — no data sources are configured. Set the roles you use "
+                                "(at least customer_comms and policies), or remove the key to use defaults."))
     for role, spec in (cfg.get("sources") or {}).items():
         if spec is None:
             continue
@@ -193,6 +214,23 @@ def enabled_sources(cfg):
         spec = (cfg.get("sources") or {}).get(role)
         if spec:
             yield role, spec
+
+
+def resolve_amount(value, currency, fallback=0):
+    """Resolve a money config field for a given currency.
+
+    `value` is either an int (applies to every currency) or a dict of {CURRENCY: int} with an
+    optional "default". Currency codes are matched case-insensitively. Since fees, minimums, and
+    high-value cutoffs differ by currency, this lets each be set per-currency without any FX
+    conversion — each dispute is judged in its own currency.
+    """
+    if isinstance(value, dict):
+        cur = (currency or "").upper()
+        v = value.get(cur)
+        if v is None:
+            v = value.get("default")
+        return v if v is not None else fallback
+    return value if value is not None else fallback
 
 
 if __name__ == "__main__":  # quick inspector: `python config.py [path]`

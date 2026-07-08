@@ -26,7 +26,7 @@ import json
 import os
 import sys
 
-from config import load_config
+from config import load_config, resolve_amount
 from storage import knowledge_dir
 from slack_format import (portable_date, ascii_table, header_block, section_block,
                           context_block, table_block)
@@ -119,10 +119,10 @@ def quick_lean(reason, amount_cents, win, days_left, fee_cents, high_value_cents
 
 
 def triage(disputes, now, cfg):
-    fee_cents = cfg["stripe"].get("dispute_fee_cents", 1500)
+    fee_cfg = cfg["stripe"].get("dispute_fee_cents", 1500)
     eval_cfg = cfg.get("evaluation") or {}
-    min_amt = eval_cfg.get("min_amount_cents", 0) or 0
-    high_value_cents = eval_cfg.get("high_value_cents", 20000) or 20000
+    min_cfg = eval_cfg.get("min_amount_cents", 0)
+    high_cfg = eval_cfg.get("high_value_cents", 20000)
     min_win = eval_cfg.get("min_winnability", 0.0) or 0.0
     wins = dict(WINNABILITY, **(cfg.get("winnability_overrides") or {}))
     rows = []
@@ -131,6 +131,11 @@ def triage(disputes, now, cfg):
             continue
         reason = d.get("reason", "general")
         amount = d.get("amount", 0)
+        currency = (d.get("currency") or "usd").upper()
+        # Resolve money thresholds for THIS dispute's currency (no FX conversion).
+        fee_cents = resolve_amount(fee_cfg, currency, 1500)
+        high_value_cents = resolve_amount(high_cfg, currency, 20000)
+        min_amt = resolve_amount(min_cfg, currency, 0) or 0
         due = _parse_ts((d.get("evidence_details") or {}).get("due_by"))
         days_left = round((due - now).total_seconds() / 86400, 1) if due else None
         win = wins.get(reason, 0.45)
@@ -144,7 +149,7 @@ def triage(disputes, now, cfg):
             "reason": reason,
             "amount_cents": amount,
             "amount": amount / 100.0,
-            "currency": (d.get("currency") or "usd").upper(),
+            "currency": currency,
             "customer_name": d.get("_customer_name", ""),
             "due_by": due.isoformat() if due else None,
             "days_left": days_left,
@@ -178,7 +183,7 @@ def _due_phrase(days_left):
     return f"due in {int(days_left)}d"
 
 
-FOOTER = ("Paste `evaluate <dispute-id>` into Claude (with the dispute-fighter skill) to run the full "
+FOOTER = ("Paste `evaluate <dispute-id>` into Claude (with the dispute_fighter skill) to run the full "
           "evaluation — it recommends fight or accept and builds the evidence package if worth fighting. "
           "`SKIP` = below your amount threshold; `EXPIRED` = deadline passed. No auto-submit.")
 
@@ -187,20 +192,26 @@ def _title(now):
     return f"Disputes needing a response — {portable_date(now)}"
 
 
+def _totals_by_currency(rows):
+    """Per-currency totals, e.g. 'USD 2,484.89 + EUR 500.00'. No FX conversion — currencies aren't summed."""
+    tot = {}
+    for r in rows:
+        tot[r["currency"]] = tot.get(r["currency"], 0.0) + r["amount"]
+    return " + ".join(f"{cur} {amt:,.2f}" for cur, amt in sorted(tot.items(), key=lambda kv: -kv[1]))
+
+
 def _headline(rows, thresholds, since):
     red_days = thresholds.get("red", 48) / 24.0
-    total = sum(r["amount"] for r in rows)
     due_soon = sum(1 for r in rows if r["days_left"] is not None and r["days_left"] <= red_days)
     below = sum(1 for r in rows if r.get("below_threshold"))
     reminders = sum(1 for r in rows if r.get("reminder"))
-    cur = rows[0]["currency"]
     if since:
         parts = [f"{len(rows) - reminders} new since last digest"]
         if reminders:
             parts.append(f"{reminders} due-soon reminder" + ("s" if reminders != 1 else ""))
     else:
         parts = [f"{len(rows)} open"]
-    parts.append(f"{cur} {total:,.2f} at risk")
+    parts.append(f"{_totals_by_currency(rows)} at risk")
     parts.append(f"{due_soon} due within {int(thresholds.get('red', 48))}h")
     if below:
         parts.append(f"{below} below evaluate threshold")

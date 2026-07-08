@@ -1,5 +1,6 @@
 {
   "_comment": "Zero-dependency config. Copy to config.json and edit. Same fields as config.example.yaml; see references/configuration.md. Stripe is pinned. All other connectors must be Airbyte Agent connectors: https://docs.airbyte.com/ai-agents/connectors",
+  "_money_note": "dispute_fee_cents, min_amount_cents, and high_value_cents each accept an int in cents (all currencies) OR a per-currency map like {\"USD\":1500,\"EUR\":1300,\"default\":1500}. No FX conversion.",
   "stripe": {
     "dispute_fee_cents": 1500,
     "default_currency": "usd"

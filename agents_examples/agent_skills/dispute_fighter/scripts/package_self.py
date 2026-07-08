@@ -2,7 +2,7 @@
 """Repackage this skill — including the user's config.json — into a distributable .skill file.
 
 Run this at the end of guided setup (or any time the config changes) to produce a pre-configured
-`dispute-fighter.skill` the user can reinstall or share. A `.skill` file is just a zip of the skill
+`dispute_fighter.skill` the user can reinstall or share. A `.skill` file is just a zip of the skill
 folder, so this needs no dependencies.
 
 Why bundle config: the loader reads config.json from the skill folder at runtime, so an in-place
@@ -14,7 +14,7 @@ credentials live in MCP OAuth or environment variables. This script refuses to b
 looks like it contains secret-ish keys, so nothing sensitive ends up in a shared package.
 
 Usage:
-    python scripts/package_self.py                 # writes ./dispute-fighter.skill
+    python scripts/package_self.py                 # writes ./dispute_fighter.skill
     python scripts/package_self.py --out ~/Desktop  # writes to a chosen directory
 """
 import argparse
@@ -35,15 +35,20 @@ def _skill_root():
 
 
 def _check_config_secret_free(root):
-    """Fail loudly if config.json/config.yaml appears to contain secrets."""
-    for name in ("config.json",):  # only JSON is machine-checkable without PyYAML
+    """Fail loudly if any config file (JSON *or* YAML) appears to contain secrets."""
+    for name in ("config.json", "config.yaml", "config.yml"):
         p = os.path.join(root, name)
         if not os.path.exists(p):
             continue
-        try:
-            blob = json.dumps(json.load(open(p))).lower()
-        except Exception:
-            continue
+        raw = open(p, encoding="utf-8", errors="ignore").read()
+        # JSON: parse for a precise scan of keys/values. YAML: scan the raw text (no PyYAML dependency).
+        if name.endswith(".json"):
+            try:
+                blob = json.dumps(json.load(open(p))).lower()
+            except Exception:
+                blob = raw.lower()  # unparseable JSON — fall back to raw text so we still scan
+        else:
+            blob = raw.lower()
         hit = next((h for h in SECRET_HINTS if h in blob), None)
         if hit:
             sys.exit(f"Refusing to bundle {name}: it contains a '{hit}'-like key. Config must be "
@@ -66,7 +71,7 @@ def main():
     args = ap.parse_args()
 
     root = _skill_root()
-    name = os.path.basename(root)  # "dispute-fighter"
+    name = os.path.basename(root)  # "dispute_fighter"
     if not os.path.exists(os.path.join(root, "SKILL.md")):
         sys.exit(f"SKILL.md not found in {root}; is this the skill folder?")
     _check_config_secret_free(root)

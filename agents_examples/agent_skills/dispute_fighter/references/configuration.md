@@ -6,7 +6,7 @@ new org's stack.
 
 ## Easiest path: guided setup (no file editing)
 
-Most users shouldn't edit these files by hand. Ask the skill to **"set up dispute-fighter"** and it
+Most users shouldn't edit these files by hand. Ask the skill to **"set up dispute_fighter"** and it
 runs a short conversation — which tool for each role — then writes and validates `config.json` for you.
 Under the hood it uses `scripts/configure.py` (`--list` to show options, `--scaffold` to start from
 safe defaults, `--validate` to check the result). The rest of this doc is the reference for what those
@@ -28,7 +28,7 @@ To set up a new org: `cp config.example.yaml config.yaml` and edit. YAML needs P
 The Chat surface can't persist a `config.json` (the installed skill is read-only and the sandbox is
 wiped between sessions). Instead, keep the config in the **Project**: run
 `python scripts/configure.py --emit config.json` and paste the emitted block — bounded by
-`=== DISPUTE-FIGHTER CONFIG (do not remove) ===` markers — into the Project's custom instructions (or a
+`=== DISPUTE_FIGHTER CONFIG (do not remove) ===` markers — into the Project's custom instructions (or a
 Project knowledge file). Each session the skill finds that block and rebuilds a scratch `config.json`
 from it, so your settings persist and you never reinstall. To change settings, edit the block.
 
@@ -60,19 +60,27 @@ The "alternatives" below are all verified Agent connectors.
 
 ## Fields
 
+> **Money fields can be per-currency.** `dispute_fee_cents`, `min_amount_cents`, and `high_value_cents`
+> each accept either an **int in cents** (applies to every currency) or a **per-currency map** like
+> `{"USD": 50000, "EUR": 45000, "default": 40000}`. Codes are matched case-insensitively; `default`
+> covers currencies not listed. **No FX conversion is ever done** — each dispute is judged in its own
+> currency, and the digest reports totals per currency (e.g. `USD 129.00 + EUR 120.00 at risk`).
+
 ### `stripe` (pinned connector, account tunables)
-- `dispute_fee_cents` — your Stripe per-dispute fee; drives the economics math (default 1500).
+- `dispute_fee_cents` — your Stripe per-dispute fee; drives the economics math (default 1500). Int or
+  per-currency map (see note above), since the fee differs by currency/region.
 - `default_currency` — fallback currency code.
 - `connector` is forced to `stripe` even if overridden.
 
 ### `evaluation`
 - `min_amount_cents` — the smallest dispute worth evaluating, in cents (e.g. `50000` = $500). Disputes
   below it are marked **SKIP** in the digest and the full evaluation recommends skipping them (unless
-  the user explicitly asks to evaluate one anyway). Default `0` = evaluate everything.
+  the user explicitly asks to evaluate one anyway). Default `0` = evaluate everything. Int or
+  per-currency map.
 - `high_value_cents` — at/above this amount the digest's quick lean tips to **FIGHT** even at moderate
   win-odds, because the absolute upside is large. This is a *separate* knob from `min_amount_cents`
-  (a "big enough to fight" cutoff, not a skip floor). Default `20000` = $200. Only affects the digest's
-  cheap heuristic, never the full evaluation.
+  (a "big enough to fight" cutoff, not a skip floor). Default `20000` = $200. Int or per-currency map.
+  Only affects the digest's cheap heuristic, never the full evaluation.
 - `min_winnability` — the win-probability floor (0..1) the company is willing to fight. Below it, both
   the digest and the full evaluation recommend **ACCEPT**. `0.0` (default) = no floor (consider/fight
   everything with a case); `0.5` = don't fight worse-than-coin-flip. Note: even strong cases cap around
