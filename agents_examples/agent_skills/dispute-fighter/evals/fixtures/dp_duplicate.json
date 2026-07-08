@@ -1,0 +1,37 @@
+{
+  "source": "fixture",
+  "dispute": {
+    "id": "dp_dup04",
+    "reason": "duplicate",
+    "amount": 7900,
+    "currency": "usd",
+    "status": "needs_response",
+    "charge": "ch_dup04b",
+    "evidence_details": {"due_by": "2026-07-20T23:59:59Z", "has_evidence": false, "submission_count": 0},
+    "evidence": {}
+  },
+  "charge": {
+    "id": "ch_dup04b",
+    "amount": 7900,
+    "customer": "cus_dup04",
+    "created": "2026-05-20",
+    "receipt_url": "https://pay.stripe.com/receipts/ch_dup04b",
+    "billing_details": {"name": "Maria Gomez", "email": "maria.gomez@example.com"},
+    "outcome": {"risk_level": "normal", "network_status": "approved_by_network"},
+    "payment_method_details": {"card": {"checks": {"address_line1_check": "pass", "address_postal_code_check": "pass", "cvc_check": "pass"}}}
+  },
+  "customer": {"id": "cus_dup04", "name": "Maria Gomez", "email": "maria.gomez@example.com", "created": "2024-08-01"},
+  "charges_history": [
+    {"id": "ch_dup04a", "amount": 7900, "created": "2026-05-12", "description": "Order #1187", "status": "succeeded", "disputed": false},
+    {"id": "ch_dup04b", "amount": 7900, "created": "2026-05-20", "description": "Order #1203", "status": "succeeded", "disputed": true}
+  ],
+  "order_data": [
+    {"order_number": "1187", "date": "2026-05-12", "charge": "ch_dup04a", "items": [{"description": "Wireless Earbuds (black)", "qty": 1}], "fulfillment": {"carrier": "USPS", "tracking_number": "9400111111", "delivered_date": "2026-05-15", "delivery_status": "delivered"}},
+    {"order_number": "1203", "date": "2026-05-20", "charge": "ch_dup04b", "items": [{"description": "Wireless Earbuds (white)", "qty": 1}], "fulfillment": {"carrier": "USPS", "tracking_number": "9400112222", "delivered_date": "2026-05-23", "delivery_status": "delivered"}}
+  ],
+  "refunds": [],
+  "fee": "15.00",
+  "zendesk": [],
+  "policies": [],
+  "slack": []
+}

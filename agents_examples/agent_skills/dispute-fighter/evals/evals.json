@@ -1,0 +1,47 @@
+{
+  "skill_name": "dispute-fighter",
+  "evals": [
+    {
+      "id": 0,
+      "name": "winnable-pnr-full-package",
+      "prompt": "We just got a Stripe dispute, dp_pnr01 — customer says they never got their order. Can you tell me if it's worth fighting and, if so, put together the evidence to contest it? I've dumped everything we have into dispute_context.json.",
+      "expected_output": "FIGHT recommendation (strong delivery confirmation, AVS/CVC pass, friendly-fraud signal). An evidence.json keyed to Stripe product_not_received fields (shipping_carrier/tracking/date/documentation, receipt, narrative) and a readable evidence_package.md. Stops for human review; does not submit.",
+      "files": ["fixtures/dp_pnr_winnable.json"]
+    },
+    {
+      "id": 1,
+      "name": "not-worth-fighting-accept",
+      "prompt": "Chargeback dp_fr02 came in, marked fraudulent. It's only $24 for a digital ebook. Should we bother fighting this one? Context is in dispute_context.json.",
+      "expected_output": "ACCEPT recommendation. Reasoning cites AVS/CVC fail, elevated risk, brand-new customer, no access logs / no deliverable proof for a digital good, and negative expected value vs the $15 dispute fee on a $24 charge. Does not fabricate evidence or build a package.",
+      "files": ["fixtures/dp_fraud_accept.json"]
+    },
+    {
+      "id": 2,
+      "name": "subscription-canceled-package",
+      "prompt": "Customer disputed dp_sc03 saying they cancelled their subscription, but our records say they didn't. Evaluate it and build the response package if we have a case. See dispute_context.json.",
+      "expected_output": "FIGHT recommendation. evidence.json centers on cancellation_policy + cancellation_policy_disclosure (accepted at signup), access_activity_log (continued use through the period), cancellation_rebuttal, and a narrative noting no cancellation was received. Readable doc produced. Stops for review.",
+      "files": ["fixtures/dp_subcancel.json"]
+    },
+    {
+      "id": 3,
+      "name": "duplicate",
+      "prompt": "Dispute dp_dup04 — customer Maria says she was charged twice for the same thing ($79). Is this worth fighting, and if so build the response? Context in dispute_context.json.",
+      "expected_output": "FIGHT. evidence.json centers on duplicate_charge_id + duplicate_charge_explanation proving the two charges are distinct purchases (orders #1187 and #1203, different dates/items, each separately fulfilled). Readable package; no auto-submit.",
+      "files": ["fixtures/dp_duplicate.json"]
+    },
+    {
+      "id": 4,
+      "name": "fraud-ce3",
+      "prompt": "Dispute dp_fr05 ($240) is marked fraudulent, but this looks like a long-time customer. Evaluate it and build the response package if we have a case. dispute_context.json has everything.",
+      "expected_output": "FIGHT. Recognizes Visa CE 3.0 eligibility and includes a visa_ce3 block with 2 prior undisputed transactions sharing IP/device/shipping/login. Cites AVS/CVC/3DS pass + IP. Realistic ~60% ceiling. Valid Stripe fields; readable package.",
+      "files": ["fixtures/dp_fraud_ce3.json"]
+    },
+    {
+      "id": 5,
+      "name": "pnr-orderdata-gift",
+      "prompt": "Dispute dp_pnr06 ($159) — customer Tom says he never got his order. Evaluate and build the evidence if it's worth fighting. dispute_context.json has the order/fulfillment data.",
+      "expected_output": "FIGHT. Uses order_data for shipping_carrier/tracking/date and the full delivery address; explains the gift ship-to mismatch (shipped to Linda Becker). evidence.json includes product_description + shipping_documentation; file-format requirements present.",
+      "files": ["fixtures/dp_pnr_orderdata_gift.json"]
+    }
+  ]
+}

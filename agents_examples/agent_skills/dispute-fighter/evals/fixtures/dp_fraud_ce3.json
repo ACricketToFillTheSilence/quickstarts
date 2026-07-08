@@ -1,0 +1,44 @@
+{
+  "source": "fixture",
+  "dispute": {
+    "id": "dp_fr05",
+    "reason": "fraudulent",
+    "amount": 24000,
+    "currency": "usd",
+    "status": "needs_response",
+    "charge": "ch_fr05",
+    "evidence_details": {"due_by": "2026-07-18T23:59:59Z", "has_evidence": false, "submission_count": 0},
+    "ce3_eligible": true,
+    "evidence": {}
+  },
+  "charge": {
+    "id": "ch_fr05",
+    "amount": 24000,
+    "customer": "cus_fr05",
+    "created": "2026-06-10",
+    "customer_ip": "203.0.113.45",
+    "receipt_url": "https://pay.stripe.com/receipts/ch_fr05",
+    "billing_details": {"name": "David Kim", "email": "david.kim@example.com",
+      "address": {"line1": "401 Cedar Rd", "city": "Seattle", "state": "WA", "postal_code": "98101", "country": "US"}},
+    "outcome": {"risk_level": "normal", "network_status": "approved_by_network"},
+    "payment_method_details": {"card": {"checks": {"address_line1_check": "pass", "address_postal_code_check": "pass", "cvc_check": "pass"}, "three_d_secure": {"authenticated": true}}}
+  },
+  "customer": {"id": "cus_fr05", "name": "David Kim", "email": "david.kim@example.com", "created": "2023-03-15"},
+  "prior_transactions": [
+    {"charge": "ch_fr05_p1", "date": "2025-12-15", "amount": 18000, "status": "succeeded", "disputed": false, "ip": "203.0.113.45", "device_id": "dev_abc123", "shipping_address": "401 Cedar Rd, Seattle, WA 98101, US"},
+    {"charge": "ch_fr05_p2", "date": "2026-02-01", "amount": 9900, "status": "succeeded", "disputed": false, "ip": "203.0.113.45", "device_id": "dev_abc123", "account_login": true}
+  ],
+  "service_usage": [
+    {"date": "2026-06-11", "action": "login"},
+    {"date": "2026-06-12", "action": "download_invoice"},
+    {"date": "2026-06-20", "action": "login"}
+  ],
+  "order_data": [
+    {"order_number": "5567", "date": "2026-06-10", "charge": "ch_fr05", "items": [{"description": "Annual Pro License", "qty": 1}]}
+  ],
+  "refunds": [],
+  "fee": "15.00",
+  "zendesk": [],
+  "policies": [],
+  "slack": []
+}

@@ -1,0 +1,31 @@
+{
+  "source": "fixture",
+  "dispute": {
+    "id": "dp_pnr01",
+    "reason": "product_not_received",
+    "amount": 12900,
+    "currency": "usd",
+    "status": "needs_response",
+    "charge": "ch_pnr01",
+    "evidence_details": {"due_by": "2026-07-12T23:59:59Z", "has_evidence": false, "submission_count": 0},
+    "evidence": {}
+  },
+  "charge": {
+    "id": "ch_pnr01",
+    "amount": 12900,
+    "customer": "cus_pnr01",
+    "receipt_url": "https://pay.stripe.com/receipts/ch_pnr01",
+    "billing_details": {"name": "Jane Doe", "email": "jane.doe@example.com",
+      "address": {"line1": "742 Evergreen Terrace", "city": "Springfield", "state": "OR", "postal_code": "97403", "country": "US"}},
+    "outcome": {"risk_level": "normal", "network_status": "approved_by_network"},
+    "payment_method_details": {"card": {"checks": {"address_line1_check": "pass", "address_postal_code_check": "pass", "cvc_check": "pass"}}}
+  },
+  "customer": {"id": "cus_pnr01", "name": "Jane Doe", "email": "jane.doe@example.com", "created": "2024-02-01"},
+  "refunds": [],
+  "fee": "15.00",
+  "order": {"number": "A-10042", "items": [{"description": "Standing Desk Pro", "qty": 1}], "shipping_address": {"line1": "742 Evergreen Terrace", "city": "Springfield", "state": "OR", "postal_code": "97403", "country": "US"}},
+  "fulfillment": {"carrier": "UPS", "tracking_number": "1Z999AA10123456784", "shipped_date": "2026-03-02", "delivered_date": "2026-03-06", "delivery_status": "delivered", "signed_by": "J DOE", "proof_of_delivery_url": "drive://disputes/A-10042/ups_pod.pdf"},
+  "zendesk": [],
+  "policies": [{"name": "Shipping & Delivery Policy", "link": "drive://policies/shipping.pdf", "snippet": "Orders ship within 2 business days; delivery confirmation provided via carrier tracking."}],
+  "slack": []
+}

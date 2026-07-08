@@ -1,0 +1,29 @@
+{
+  "source": "fixture",
+  "dispute": {
+    "id": "dp_sc03",
+    "reason": "subscription_canceled",
+    "amount": 4900,
+    "currency": "usd",
+    "status": "needs_response",
+    "charge": "ch_sc03",
+    "evidence_details": {"due_by": "2026-07-15T23:59:59Z", "has_evidence": false, "submission_count": 0},
+    "evidence": {}
+  },
+  "charge": {
+    "id": "ch_sc03",
+    "amount": 4900,
+    "customer": "cus_sc03",
+    "billing_details": {"name": "Sam Lee", "email": "sam.lee@example.com"},
+    "outcome": {"risk_level": "normal"},
+    "payment_method_details": {"card": {"checks": {"address_postal_code_check": "pass", "cvc_check": "pass"}}}
+  },
+  "customer": {"id": "cus_sc03", "name": "Sam Lee", "email": "sam.lee@example.com", "created": "2025-01-10"},
+  "subscriptions": [{"id": "sub_sc03", "plan": "Pro Monthly", "status": "active", "current_period_start": "2026-06-01", "current_period_end": "2026-07-01", "canceled_at": null}],
+  "refunds": [],
+  "fee": "15.00",
+  "usage": {"access_logs": [{"date": "2026-06-03", "action": "login"}, {"date": "2026-06-18", "action": "export_report"}, {"date": "2026-06-25", "action": "login"}]},
+  "zendesk": [{"ticket_id": 5521, "subject": "How do I export?", "created": "2026-06-18", "requester_email": "sam.lee@example.com", "comments": [{"author": "Sam Lee", "body": "Got it, thanks!"}]}],
+  "policies": [{"name": "Cancellation Policy", "link": "drive://policies/cancellation.pdf", "snippet": "Subscriptions renew monthly until canceled in account settings. No cancellation = continued billing. Customer accepts at signup via checkbox.", "accepted_at_signup": true}],
+  "slack": []
+}

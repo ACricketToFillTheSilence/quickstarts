@@ -1,0 +1,40 @@
+{
+  "source": "fixture",
+  "dispute": {
+    "id": "dp_pnr06",
+    "reason": "product_not_received",
+    "amount": 15900,
+    "currency": "usd",
+    "status": "needs_response",
+    "charge": "ch_pnr06",
+    "evidence_details": {"due_by": "2026-07-22T23:59:59Z", "has_evidence": false, "submission_count": 0},
+    "evidence": {}
+  },
+  "charge": {
+    "id": "ch_pnr06",
+    "amount": 15900,
+    "customer": "cus_pnr06",
+    "created": "2026-04-01",
+    "receipt_url": "https://pay.stripe.com/receipts/ch_pnr06",
+    "billing_details": {"name": "Tom Becker", "email": "tom.becker@example.com",
+      "address": {"line1": "12 Oak St", "city": "Austin", "state": "TX", "postal_code": "78701", "country": "US"}},
+    "outcome": {"risk_level": "normal", "network_status": "approved_by_network"},
+    "payment_method_details": {"card": {"checks": {"address_line1_check": "pass", "address_postal_code_check": "pass", "cvc_check": "pass"}}}
+  },
+  "customer": {"id": "cus_pnr06", "name": "Tom Becker", "email": "tom.becker@example.com", "created": "2025-06-01"},
+  "order_data": [
+    {
+      "order_number": "SH-9912",
+      "date": "2026-04-01",
+      "charge": "ch_pnr06",
+      "items": [{"description": "Espresso Machine X20", "qty": 1, "unit_price": 15900}],
+      "shipping_address": {"name": "Linda Becker", "line1": "88 Pine Ave", "city": "Denver", "state": "CO", "postal_code": "80202", "country": "US"},
+      "fulfillment": {"carrier": "FedEx", "tracking_number": "770012345678", "shipped_date": "2026-04-02", "delivered_date": "2026-04-05", "delivery_status": "delivered", "signed_by": "L BECKER", "proof_of_delivery_url": "shopify://orders/SH-9912/fedex_pod.pdf"}
+    }
+  ],
+  "refunds": [],
+  "fee": "15.00",
+  "zendesk": [],
+  "policies": [{"name": "Shipping Policy", "link": "drive://policies/shipping.pdf", "snippet": "Delivery confirmation provided via carrier tracking; gift orders ship to the recipient address provided at checkout."}],
+  "slack": []
+}

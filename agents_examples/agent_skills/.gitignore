@@ -1,0 +1,10 @@
+# Built skill artifacts (produced by package_self.py / the skill packager)
+*.skill
+
+# Editor / OS noise
+.vscode/
+.DS_Store
+
+# Python bytecode
+__pycache__/
+*.pyc
