@@ -23,6 +23,7 @@ import datetime as dt
 import json
 from collections import Counter
 
+from config import currency_decimals
 from slack_format import (portable_date, ascii_table, header_block, section_block,
                           context_block, table_block)
 
@@ -30,11 +31,16 @@ FOOTER = ("Recommendations for human review — nothing has been submitted to St
           "`FIGHT` = contest (package built); `ACCEPT`/`SKIP` = don't. Open a package before submitting.")
 
 
+def _fmt_major(value, currency):
+    """Format a major-unit amount with the currency's decimal places (JPY -> 0, BHD -> 3, else 2)."""
+    d = currency_decimals(currency)
+    return f"{(currency or '').upper()} {value:,.{d}f}".strip()
+
+
 def _amount_str(d):
-    cur = str(d.get("currency") or "").upper()
     amt = d.get("amount")
     try:
-        return f"{cur} {float(str(amt).replace(',', '')):,.2f}".strip()
+        return _fmt_major(float(str(amt).replace(",", "")), d.get("currency"))
     except (TypeError, ValueError):
         return str(amt) if amt not in (None, "") else "—"
 
@@ -62,7 +68,7 @@ def build(data, now, title=None):
         if verdicts.get(v):
             parts.append(f"{verdicts[v]} {v.lower()}")
     if fight_totals:
-        totals = " + ".join(f"{cur} {amt:,.2f}" for cur, amt in sorted(fight_totals.items(), key=lambda kv: -kv[1]))
+        totals = " + ".join(_fmt_major(amt, cur) for cur, amt in sorted(fight_totals.items(), key=lambda kv: -kv[1]))
         parts.append(f"{totals} recommended to fight")
     headline = " · ".join(parts)
 

@@ -26,7 +26,7 @@ import json
 import os
 import sys
 
-from config import load_config, resolve_amount
+from config import load_config, resolve_amount, format_money
 from storage import knowledge_dir
 from slack_format import (portable_date, ascii_table, header_block, section_block,
                           context_block, table_block)
@@ -110,7 +110,9 @@ def quick_lean(reason, amount_cents, win, days_left, fee_cents, high_value_cents
         return "ACCEPT"
     if win < min_win:
         return "ACCEPT"  # below the company's winnability floor
-    ev = win * (amount_cents / 100.0) - fee_cents / 100.0
+    # Compare in the currency's smallest unit (amount_cents, fee_cents already match Stripe's amount).
+    # No /100 needed — the EV sign is what matters, and it's identical across any fixed divisor.
+    ev = win * amount_cents - fee_cents
     if win >= 0.55 or amount_cents >= high_value_cents:
         return "FIGHT"
     if ev <= 0:
@@ -147,8 +149,8 @@ def triage(disputes, now, cfg):
             "below_threshold": below,
             "id": d.get("id"),
             "reason": reason,
-            "amount_cents": amount,
-            "amount": amount / 100.0,
+            "amount_cents": amount,                 # Stripe's smallest-unit integer
+            "amount_display": format_money(amount, currency),  # currency-correct, incl. zero-decimal
             "currency": currency,
             "customer_name": d.get("_customer_name", ""),
             "due_by": due.isoformat() if due else None,
@@ -193,11 +195,12 @@ def _title(now):
 
 
 def _totals_by_currency(rows):
-    """Per-currency totals, e.g. 'USD 2,484.89 + EUR 500.00'. No FX conversion — currencies aren't summed."""
+    """Per-currency totals, e.g. 'USD 2,484.89 + EUR 500.00'. No FX conversion — currencies aren't summed.
+    Sums in each currency's smallest unit, then formats (so zero-decimal currencies render correctly)."""
     tot = {}
     for r in rows:
-        tot[r["currency"]] = tot.get(r["currency"], 0.0) + r["amount"]
-    return " + ".join(f"{cur} {amt:,.2f}" for cur, amt in sorted(tot.items(), key=lambda kv: -kv[1]))
+        tot[r["currency"]] = tot.get(r["currency"], 0) + r["amount_cents"]
+    return " + ".join(format_money(amt, cur) for cur, amt in sorted(tot.items(), key=lambda kv: -kv[1]))
 
 
 def _headline(rows, thresholds, since):
@@ -226,7 +229,7 @@ def to_slack_mrkdwn(rows, now, thresholds, since=None):
     """Plain mrkdwn text — used as the Block Kit notification fallback and for the code-block view."""
     if not rows:
         return f"🛡️ *{_title(now)}*\n{_empty_msg(since)}"
-    data = [[r["id"], f"{r['currency']} {r['amount']:,.2f}", r["reason"],
+    data = [[r["id"], r["amount_display"], r["reason"],
              _due_phrase(r["days_left"]), r["lean"], (r["customer_name"] or "")[:18]] for r in rows]
     table = ascii_table(["Dispute", "Amount", "Reason", "Due", "Lean", "Customer"], data)
     return "\n".join([f"🛡️ *{_title(now)}*", _headline(rows, thresholds, since), "",
@@ -245,7 +248,7 @@ def to_slack_blocks(rows, now, thresholds, since=None):
     data = []
     for r in shown:
         due = _due_phrase(r["days_left"]) + (" (reminder)" if r.get("reminder") else "")
-        data.append([r["id"], f"{r['currency']} {r['amount']:,.2f}", r["reason"], due, r["lean"],
+        data.append([r["id"], r["amount_display"], r["reason"], due, r["lean"],
                      r["customer_name"] or "—"])
     blocks.append(table_block(["Dispute", "Amount", "Reason", "Due", "Lean", "Customer"], data,
                               column_settings=[{}, {"align": "right"}, {"is_wrapped": True}, {}, {}, {"is_wrapped": True}]))

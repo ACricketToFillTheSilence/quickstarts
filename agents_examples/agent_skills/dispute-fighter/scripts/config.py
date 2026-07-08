@@ -24,9 +24,10 @@ import sys
 DEFAULTS = {
     "stripe": {
         "connector": "stripe",      # pinned — the disputes system of record
-        # Money fields (here and in `evaluation`) may be an int in cents that applies to every
-        # currency, OR a per-currency map like {"USD": 1500, "EUR": 1300, "default": 1500}. No FX
-        # conversion is done — each dispute is judged in its own currency.
+        # Money fields (here and in `evaluation`) may be a single int, OR a per-currency map like
+        # {"USD": 1500, "EUR": 1300, "default": 1500}. No FX conversion — each dispute is judged in its
+        # own currency. Values are in the currency's SMALLEST UNIT (= Stripe's `amount`): cents for
+        # USD/EUR, whole units for zero-decimal currencies (so {"JPY": 50000} = ¥50,000).
         "dispute_fee_cents": 1500,  # your Stripe dispute fee, for economics math
         "default_currency": "usd",
     },
@@ -231,6 +232,36 @@ def resolve_amount(value, currency, fallback=0):
             v = value.get("default")
         return v if v is not None else fallback
     return value if value is not None else fallback
+
+
+# Stripe reports `amount` in the currency's smallest unit. For most currencies that's 1/100 (cents),
+# but zero-decimal currencies use whole units and three-decimal currencies use 1/1000. Config money
+# fields (fees/minimums) are in that SAME smallest unit, so threshold comparisons need no conversion —
+# only display does. https://docs.stripe.com/currencies#zero-decimal
+ZERO_DECIMAL_CURRENCIES = {"BIF", "CLP", "DJF", "GNF", "JPY", "KMF", "KRW", "MGA", "PYG",
+                           "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF"}
+THREE_DECIMAL_CURRENCIES = {"BHD", "JOD", "KWD", "OMR", "TND"}
+
+
+def currency_decimals(currency):
+    """Decimal places for a currency: 0 (JPY…), 3 (BHD…), else 2."""
+    c = (currency or "").upper()
+    if c in ZERO_DECIMAL_CURRENCIES:
+        return 0
+    if c in THREE_DECIMAL_CURRENCIES:
+        return 3
+    return 2
+
+
+def format_money(amount_minor, currency):
+    """Format a smallest-unit integer amount for display, e.g. 12900/USD -> 'USD 129.00',
+    1000/JPY -> 'JPY 1,000', 1500/BHD -> 'BHD 1.500'."""
+    d = currency_decimals(currency)
+    try:
+        value = float(amount_minor) / (10 ** d)
+    except (TypeError, ValueError):
+        value = 0.0
+    return f"{(currency or '').upper()} {value:,.{d}f}"
 
 
 if __name__ == "__main__":  # quick inspector: `python config.py [path]`

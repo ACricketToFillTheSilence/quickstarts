@@ -13,9 +13,11 @@
 # Stripe is the fixed system of record for disputes. You can tune account
 # specifics, but the connector itself is pinned — disputes always come from Stripe.
 stripe:
-  # Money fields (here + under `evaluation`) accept an int in cents (applies to all currencies) OR a
-  # per-currency map, e.g. {USD: 1500, EUR: 1300, default: 1500}. No FX conversion — each dispute is
-  # judged in its own currency and the digest totals per currency.
+  # Money fields (here + under `evaluation`) accept a single int OR a per-currency map,
+  # e.g. {USD: 1500, EUR: 1300, default: 1500}. No FX conversion — each dispute is judged in its own
+  # currency and the digest totals per currency. Values are in the currency's SMALLEST UNIT (same as
+  # Stripe's `amount`): cents for USD/EUR, but WHOLE units for zero-decimal currencies (so {JPY: 50000}
+  # means ¥50,000). See references/configuration.md.
   dispute_fee_cents: 1500        # your per-dispute Stripe fee. This default is equivalent to $15.00
   default_currency: usd
 

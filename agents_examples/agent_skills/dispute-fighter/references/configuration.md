@@ -61,10 +61,16 @@ The "alternatives" below are all verified Agent connectors.
 ## Fields
 
 > **Money fields can be per-currency.** `dispute_fee_cents`, `min_amount_cents`, and `high_value_cents`
-> each accept either an **int in cents** (applies to every currency) or a **per-currency map** like
+> each accept either a single **int** (applies to every currency) or a **per-currency map** like
 > `{"USD": 50000, "EUR": 45000, "default": 40000}`. Codes are matched case-insensitively; `default`
 > covers currencies not listed. **No FX conversion is ever done** — each dispute is judged in its own
 > currency, and the digest reports totals per currency (e.g. `USD 129.00 + EUR 120.00 at risk`).
+>
+> **Values are in the currency's *smallest unit* — the same unit as Stripe's `amount` — not always
+> "cents."** For 2-decimal currencies (USD, EUR, GBP…) that's cents (`50000` = $500). For **zero-decimal
+> currencies** (JPY, KRW, HUF, VND, XAF, …) it's whole units, so `{"JPY": 50000}` means **¥50,000**, and
+> a ¥30,000 dispute (`amount: 30000`) is below it. Three-decimal currencies (BHD, KWD, OMR…) are
+> thousandths. The skill formats amounts per currency for display, so JPY shows `JPY 1,000` (no decimals).
 
 ### `stripe` (pinned connector, account tunables)
 - `dispute_fee_cents` — your Stripe per-dispute fee; drives the economics math (default 1500). Int or

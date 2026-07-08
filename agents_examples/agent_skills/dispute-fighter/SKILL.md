@@ -1,5 +1,5 @@
 ---
-name: dispute_fighter
+name: dispute-fighter
 description: >-
   Evaluate whether a Stripe credit card dispute (chargeback) is worth fighting, and assemble a
   ready-to-submit evidence package to fight it. Pulls live context from Stripe plus your configured
@@ -220,17 +220,27 @@ code, what won and what lost previous disputes. Apply the relevant lessons to th
 how you'll build the package. These files are maintained automatically by the daily outcome review
 (see "Outcome review & self-heal" below), so the skill gets sharper over time.
 
-**Amount threshold (check first).** If `evaluation.min_amount_cents` is set in config and this
-dispute's amount is below it, the user has decided it's not worth the effort. Recommend **SKIP** with a
-one-line reason (e.g. "$24 is below your $500 evaluate threshold — accept it") and don't build a
-package — *unless* the user explicitly asked to evaluate this specific dispute anyway, in which case
-proceed but note it's below threshold. A threshold of 0 (default) means evaluate everything.
+**Work in the dispute's own currency (no FX).** Judge every dispute in its `currency`. Stripe's
+`amount` is in that currency's **smallest unit** (cents for USD/EUR/GBP, but **whole units** for
+zero-decimal currencies like JPY/KRW — `amount: 1000` = ¥1,000, not ¥10.00). The money config fields
+(`dispute_fee_cents`, `min_amount_cents`, `high_value_cents`) are in that same smallest unit and may be
+**per-currency maps** — resolve the entry for *this dispute's* currency (map[CURRENCY] → `default` →
+the scalar). Never convert between currencies; compare and reason within the one currency.
+
+**Amount threshold (check first).** If `evaluation.min_amount_cents` (resolved for this currency) is
+set and this dispute's amount is below it, the user has decided it's not worth the effort. Recommend
+**SKIP** with a one-line reason (e.g. "¥30,000 is below your ¥50,000 JPY evaluate threshold — accept
+it") and don't build a package — *unless* the user explicitly asked to evaluate this dispute anyway, in
+which case proceed but note it's below threshold. A threshold of 0 (default) means evaluate everything.
 
 **Winnability floor (company policy).** After you estimate the win probability, compare it to
-`evaluation.min_winnability` (0..1). If your estimate is **below** the floor, recommend **ACCEPT** —
-the company has decided it won't fight odds that low — and state both numbers (e.g. "estimated ~40%
-vs. your 50% floor"). A floor of 0.0 (default) imposes no policy limit; fight wherever there's a case.
-The user can override for a specific dispute, but note it's below their floor.
+`evaluation.min_winnability` (0..1). This is a probability, so it's **currency-independent** — the same
+floor applies to every dispute. If your estimate is **below** the floor, recommend **ACCEPT** — the
+company won't fight odds that low — and state both numbers (e.g. "estimated ~40% vs. your 50% floor").
+A floor of 0.0 (default) imposes no policy limit. The user can override per dispute, but note it.
+
+**Economics** likewise use this currency's `dispute_fee_cents` and the disputed `amount` directly —
+`EV ≈ win% × amount − fee`, all in-currency.
 
 Then read [references/evaluation.md](references/evaluation.md) for the full rubric, and assess:
 

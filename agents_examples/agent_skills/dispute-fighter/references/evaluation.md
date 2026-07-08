@@ -5,11 +5,19 @@ configured threshold). Winning chargebacks is about evidence fit, not effort or 
 "accept" that saves the merchant wasted time is as valuable as a winnable "fight." Walk these factors,
 then synthesize.
 
-## 0. Amount threshold (gate — check first)
-If `evaluation.min_amount_cents` is configured and the disputed amount is below it, the merchant has
-decided this dispute isn't worth the effort. Recommend **SKIP** (accept the loss) with a one-line
-reason and stop — don't gather evidence or build a package — unless the user explicitly asked to
-evaluate this specific dispute anyway. Threshold 0 (default) evaluates everything.
+## 0. Currency (read before the money gates)
+Judge the dispute in its own `currency` — **never convert between currencies.** Stripe's `amount` is
+in the currency's **smallest unit**: cents for USD/EUR/GBP, but **whole units** for zero-decimal
+currencies (JPY, KRW, HUF, VND, …) where `amount: 1000` means ¥1,000, not ¥10.00. The money config
+fields are in that same smallest unit and may be **per-currency maps** — resolve each for this
+dispute's currency: `map[CURRENCY]` → `map["default"]` → the scalar value.
+
+## 0a. Amount threshold (gate — check first)
+If `evaluation.min_amount_cents` (resolved for this currency) is configured and the disputed amount is
+below it, the merchant has decided this dispute isn't worth the effort. Recommend **SKIP** (accept the
+loss) with a one-line reason and stop — don't gather evidence or build a package — unless the user
+explicitly asked to evaluate this specific dispute anyway. Threshold 0 (default) evaluates everything.
+Example: a ¥30,000 JPY dispute with `min_amount_cents: {"JPY": 50000}` is below the ¥50,000 floor → SKIP.
 
 ## 0b. Winnability floor (company policy gate)
 After you estimate the win probability (factors 1–5), compare it to `evaluation.min_winnability`
