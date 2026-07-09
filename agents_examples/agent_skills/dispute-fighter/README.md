@@ -3,9 +3,9 @@
 A Claude skill that helps you handle Stripe credit card disputes (chargebacks). It does four things:
 
 1. **Evaluate** — decides whether a dispute is worth fighting, with honest reasoning (a well-argued
-   "accept the loss" is a valid answer). You can set a minimum dollar threshold so small disputes are
-   skipped, a minimum win-probability floor (e.g. don't fight below 50%), and evaluate several disputes
-   in one request.
+   "accept the loss" is a valid answer). You can set a minimum amount threshold (per-currency) so small
+   disputes are skipped, a minimum win-probability floor (e.g. don't fight below 50%), and evaluate
+   several disputes in one request.
 2. **Build** — assembles a ready-to-submit evidence package: a Stripe `dispute.evidence` JSON plus a
    human-readable rebuttal document.
 3. **Daily digest** — posts a table of disputes needing a response to your chat tool (Slack). It's
@@ -60,7 +60,7 @@ scripts/configure.py --emit config.json`) for you to paste into your **Project's
 from it — change settings by editing the block, never reinstalling.
 
 **On Claude Code / a writable install**, Claude can instead **repackage the skill with your config
-baked in** (`python scripts/package_self.py`) to produce a pre-configured ` .skill` to
+baked in** (`python scripts/package_self.py`) to produce a pre-configured `dispute-fighter.skill` to
 reinstall or share. This is optional — if the installed folder is writable, the `config.json` Claude
 wrote is already active. Either way the config is safe to store/share: it holds no secrets (credentials
 live in MCP OAuth / env vars), and the packager refuses to bundle anything secret-like.
@@ -126,7 +126,7 @@ python scripts/build_evidence_package.py evidence_input.json --outdir ./out
 python scripts/save_package.py --dispute dp_123 --dir ./out --reason product_not_received --amount 129.00 --currency USD
 
 # Daily digest (incremental: only disputes new since the last post, plus due-soon reminders)
-python scripts/daily_dispute_digest.py            # print the table message
+python scripts/daily_dispute_digest.py            # print the Markdown table (the default post form)
 python scripts/daily_dispute_digest.py --all      # include every open dispute, not just new ones
 python scripts/daily_dispute_digest.py --post     # post via Slack (needs token + channel); advances the watermark
 python scripts/daily_dispute_digest.py --mark-posted   # advance the watermark after posting via a Slack tool
@@ -185,7 +185,7 @@ scripts/
   review_outcomes.py              # self-heal: scan resolved disputes, move to won/lost
 assets/evidence_package_template.md
 
-# Created at runtime in storage.local_dir (~/ -data), not shipped:
+# Created at runtime in storage.local_dir (~/dispute-fighter-data), not shipped:
 #   pending/ · won/ · lost/  (package folders)   index.json (ledger)
 #   learnings.md · pitfalls.md  (self-heal knowledge base)   digest_state.json (last-posted watermark)
 ```
