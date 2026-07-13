@@ -2,7 +2,7 @@
 
 A runnable example agent that reads new GitHub issues, cross-references Linear for duplicates, and posts a triage summary to Slack. It shows how to give a [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python) agent live read and write access to your business systems through [Airbyte Agents](https://airbyte.com).
 
-The agent lives in `airbyte-claude-agent-sdk-example.py`. You wire each connector's Airbyte tools into the agent yourself, which gives you full programmatic control.
+The agent lives in `airbyte-claude-agent-sdk-example.py`. You can wire each connector's Airbyte tools into the agent yourself, which gives you full programmatic control.
 
 ## Prerequisites
 
@@ -29,7 +29,7 @@ AIRBYTE_CLIENT_SECRET=your_client_secret
 AIRBYTE_WORKSPACE_NAME=your_workspace_name
 ```
 
-Get the client ID, client secret, and workspace name from your Airbyte workspace.
+Get the client ID, client secret, and workspace name from your Airbyte workspace. If you only have one workspace, this name is `default`.
 
 ## Run
 
@@ -41,18 +41,19 @@ The script prints a health line per connector, then streams the agent's work as 
 
 ## How it works
 
-Every Airbyte connector exposes three callables through `build_connector_tools(connector)`: `inspect_connector`, `read_skill_docs`, and `execute`. The agent uses them in a progressive flow instead of loading the whole connector catalog into its prompt up front:
+Every Airbyte connector exposes three callables through `build_connector_tools(connector)`: `inspect_connector`, `read_skill_docs`, and `execute`. The agent uses them in a progressive flow:
 
-1. `inspect_connector()` reports the connector's metadata and Context Store readiness, and resolves the skill-doc id the other two calls use.
+1. `inspect_connector()` reports the connector's metadata and Context Store readiness, and resolves the skill-doc ID the other two calls use.
 2. `read_skill_docs()` returns an outline of the connector's entities and actions. `read_skill_docs(section="...")` drills into the guidance for the specific operation the agent is about to run.
 3. `execute(entity, action, params)` runs the operation and returns a structured result with `data` (the records) and `meta` (pagination cursors).
 
-The Claude Agent SDK is not one of the frameworks `build_connector_tools` registers into automatically, so the `make_airbyte_tools` helper takes each callable and wraps it by hand as a custom `@tool`. Tool names are prefixed per connector (for example `github_execute`) because the three callables share a name across connectors, and all of them register on a single in-process MCP server. `allowed_tools=["mcp__airbyte__*"]` pre-approves every tool on that server so none trip a permission prompt.
+> [!NOTE]
+> Airbyte Agents SDK offers a function called `build_connector_tools` to encapsulate all three calls for some frameworks. However, The Claude Agent SDK is not one of the frameworks, so the `make_airbyte_tools` helper takes each callable and wraps it as a custom `@tool`. 
 
-Handlers catch exceptions and return `is_error: True`. When the agent guesses a wrong `read_skill_docs` section, the error message carries the valid outline, so Claude can read it and retry instead of the run aborting.
+Tool names are prefixed per connector (for example `github_execute`) because the three callables share a name across connectors, and all of them register on a single in-process MCP server. `allowed_tools=["mcp__airbyte__*"` pre-approves every tool on that server so none trip a permission prompt.
+
+Handlers catch exceptions and return `is_error: True`. When the agent guesses a wrong `read_skill_docs` section, the error message carries the valid outline for Claude to read and retry without needing to abort.
 
 ## Files
 
 - `airbyte-claude-agent-sdk-example.py` — the agent.
-- `airbyte-claude-agent-sdk-tutorial.md` — full tutorial.
-- `airbyte-claude-agent-sdk-quickstart.md` — five-minute quickstart.
