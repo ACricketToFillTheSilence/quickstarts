@@ -50,7 +50,7 @@ Every Airbyte connector exposes three callables through `build_connector_tools(c
 > [!NOTE]
 > Airbyte Agents SDK offers a function called `build_connector_tools` to encapsulate all three calls for some frameworks. However, The Claude Agent SDK is not one of the frameworks, so the `make_airbyte_tools` helper takes each callable and wraps it as a custom `@tool`. 
 
-Tool names are prefixed per connector (for example `github_execute`) because the three callables share a name across connectors, and all of them register on a single in-process MCP server. `allowed_tools=["mcp__airbyte__*"` pre-approves every tool on that server so none trip a permission prompt.
+Tool names are prefixed per connector (for example `github_execute`) because the three callables share a name across connectors, and all of them register on a single in-process MCP server. `allowed_tools=["mcp__airbyte__*"]` pre-approves every tool on that server so none trip a permission prompt.
 
 Handlers catch exceptions and return `is_error: True`. When the agent guesses a wrong `read_skill_docs` section, the error message carries the valid outline for Claude to read and retry without needing to abort.
 
