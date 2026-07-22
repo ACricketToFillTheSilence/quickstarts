@@ -3,10 +3,12 @@ Bug-triage agent: Claude Agent SDK + Airbyte Agents (SDK path).
 
 What it does:
   Reads new GitHub issues, cross-references Linear for duplicates, and posts a
-  triage summary to Slack. Each connector exposes three callables through
-  Airbyte's build_connector_tools (inspect_connector, read_skill_docs, execute).
-  The Claude Agent SDK has no built-in integration for them, so we wrap each
-  callable by hand as a custom @tool.
+  triage summary to Slack. Each connector exposes three async methods
+  (inspect_connector, read_skill_docs, execute). We wrap each with Airbyte's
+  agent_tool decorator, which enriches the docstring and steers the model
+  through the inspect -> read docs -> execute flow, then bridge each one into a
+  Claude Agent SDK @tool since the Claude Agent SDK is not a framework
+  agent_tool registers for automatically.
 
 Run it:
   uv run airbyte-claude-agent-sdk-example.py
@@ -20,11 +22,10 @@ Requires a .env with:
 
 import asyncio
 import json
-import os
 
 from dotenv import load_dotenv
 
-from airbyte_agent_sdk import AirbyteAuthConfig, build_connector_tools, connect
+from airbyte_agent_sdk import AirbyteToolError, connect
 from claude_agent_sdk import (
     AssistantMessage,
     ClaudeAgentOptions,
@@ -37,8 +38,9 @@ from claude_agent_sdk import (
 
 load_dotenv()
 
-# Input schemas for Airbyte's three callables, in Claude Agent SDK @tool form.
-TOOL_SCHEMAS = {
+# The Claude Agent SDK still needs an input schema for each tool, keyed by the
+# agent_tool role.
+SCHEMAS = {
     "inspect_connector": {"type": "object", "properties": {}},
     "read_skill_docs": {
         "type": "object",
@@ -69,29 +71,56 @@ TOOL_SCHEMAS = {
 
 
 def make_airbyte_tools(slug, connector):
-    """Wrap a connector's three Airbyte callables as Claude Agent SDK tools.
+    """Wrap a connector's three async methods as Claude Agent SDK tools.
 
-    build_connector_tools returns inspect_connector, read_skill_docs, and execute
-    as plain async callables. We register each by hand because the Claude Agent
-    SDK is not one of build_connector_tools' supported frameworks.
+    agent_tool infers each method's role from its signature, enriches the
+    docstring, and defaults to framework="none" so failures raise
+    AirbyteToolError. The bridge then adapts the result to the content-array
+    shape the Claude Agent SDK expects.
     """
-    callables = {fn.__name__: fn for fn in build_connector_tools(connector).as_list()}
+    # agent_tool is a classmethod on the typed connector class; reach it off the instance.
+    agent_tool = type(connector).agent_tool
+    inspect_name = f"{slug}_inspect"
+    docs_name = f"{slug}_read_docs"
+    execute_name = f"{slug}_execute"
 
-    def wrap(name):
-        underlying = callables[name]
+    @agent_tool()  # role inferred from the empty signature: inspect_connector
+    async def inspect() -> str:
+        """Inspect this connector: metadata, Context Store readiness, and its skill-doc id."""
+        return json.dumps(await connector.inspect_connector(), default=str)
 
-        @tool(f"{slug}_{name}", underlying.__doc__ or name, TOOL_SCHEMAS[name])
+    @agent_tool()  # role inferred from the section-only signature: read_skill_docs
+    async def read_docs(section: str | None = None) -> str:
+        """Read the connector's skill docs. Omit the section to get the outline first."""
+        return await connector.read_skill_docs(section)
+
+    # execute passes its role explicitly and names its siblings, so agent_tool can
+    # steer the model: inspect -> read the outline -> read one section -> execute.
+    @agent_tool("execute", inspect_tool=inspect_name, docs_tool=docs_name)
+    async def execute(entity: str, action: str, params: dict | None = None) -> str:
+        """Run an operation once you've read the relevant skill-doc section."""
+        return json.dumps(await connector.execute(entity, action, params or {}), default=str)
+
+    # Bridge each agent_tool function into a Claude Agent SDK tool. agent_tool has
+    # already enriched __doc__ and set framework="none", so failures arrive as
+    # AirbyteToolError; the bridge adapts the return shape and surfaces errors.
+    def bridge(name, role, fn):
+        @tool(name, fn.__doc__ or name, SCHEMAS[role])
         async def _run(args):
             try:
-                result = await underlying(**args)
-            except Exception as exc:
+                text = await fn(**args)
+            except AirbyteToolError as exc:
                 # Surface the error (e.g. a bad section id) so Claude can retry.
                 return {"content": [{"type": "text", "text": str(exc)}], "is_error": True}
-            return {"content": [{"type": "text", "text": json.dumps(result, default=str)}]}
+            return {"content": [{"type": "text", "text": text}]}
 
         return _run
 
-    return [wrap(name) for name in ("inspect_connector", "read_skill_docs", "execute")]
+    return [
+        bridge(inspect_name, "inspect_connector", inspect),
+        bridge(docs_name, "read_skill_docs", read_docs),
+        bridge(execute_name, "execute", execute),
+    ]
 
 
 async def main():
@@ -116,7 +145,7 @@ async def main():
 
     options = ClaudeAgentOptions(
         mcp_servers={"airbyte": server},
-        allowed_tools=["mcp__airbyte__*"],  # inspect, read_skill_docs, execute for all three
+        allowed_tools=["mcp__airbyte__*"],  # inspect, read_docs, execute for all three
         system_prompt=(
             "You triage engineering bugs. For each connector, inspect it and read its "
             "skill docs to learn the entities and actions before you execute. Check "
