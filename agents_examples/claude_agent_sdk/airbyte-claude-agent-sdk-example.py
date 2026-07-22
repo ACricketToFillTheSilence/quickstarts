@@ -1,23 +1,14 @@
 """
 Bug-triage agent: Claude Agent SDK + Airbyte Agents (SDK path).
 
-What it does:
-  Reads new GitHub issues, cross-references Linear for duplicates, and posts a
-  triage summary to Slack. Each connector exposes three async methods
-  (inspect_connector, read_skill_docs, execute). We wrap each with Airbyte's
-  agent_tool decorator, which enriches the docstring and steers the model
-  through the inspect -> read docs -> execute flow, then bridge each one into a
-  Claude Agent SDK @tool since the Claude Agent SDK is not a framework
-  agent_tool registers for automatically.
+Reads new GitHub issues, cross-references Linear for duplicates, and posts a
+triage summary to Slack. Each connector exposes three async methods
+(inspect_connector, read_skill_docs, execute) wrapped with Airbyte's
+agent_tool decorator, which enriches the docstring and steers the model
+through the inspect -> read docs -> execute flow. The script then bridges each connection
+into a Claude Agent SDK @tool.
 
-Run it:
-  uv run airbyte-claude-agent-sdk-example.py
-
-Requires a .env with:
-  ANTHROPIC_API_KEY        (the Claude Agent SDK uses this to run Claude)
-  AIRBYTE_CLIENT_ID
-  AIRBYTE_CLIENT_SECRET
-  AIRBYTE_WORKSPACE_NAME
+Run it: uv run airbyte-claude-agent-sdk-example.py
 """
 
 import asyncio
@@ -38,7 +29,7 @@ from claude_agent_sdk import (
 
 load_dotenv()
 
-# The Claude Agent SDK still needs an input schema for each tool, keyed by the
+# Defines a schema for each tool, which will be keyed by the
 # agent_tool role.
 SCHEMAS = {
     "inspect_connector": {"type": "object", "properties": {}},
@@ -78,18 +69,18 @@ def make_airbyte_tools(slug, connector):
     AirbyteToolError. The bridge then adapts the result to the content-array
     shape the Claude Agent SDK expects.
     """
-    # agent_tool is a classmethod on the typed connector class; reach it off the instance.
+    # agent_tool is a class method on the typed connector class; reach it off the instance.
     agent_tool = type(connector).agent_tool
     inspect_name = f"{slug}_inspect"
     docs_name = f"{slug}_read_docs"
     execute_name = f"{slug}_execute"
 
-    @agent_tool()  # role inferred from the empty signature: inspect_connector
+    @agent_tool()  # inspect_connector role inferred from the empty signature
     async def inspect() -> str:
         """Inspect this connector: metadata, Context Store readiness, and its skill-doc id."""
         return json.dumps(await connector.inspect_connector(), default=str)
 
-    @agent_tool()  # role inferred from the section-only signature: read_skill_docs
+    @agent_tool()  # read_skill_docs role inferred from the section-only signature
     async def read_docs(section: str | None = None) -> str:
         """Read the connector's skill docs. Omit the section to get the outline first."""
         return await connector.read_skill_docs(section)
