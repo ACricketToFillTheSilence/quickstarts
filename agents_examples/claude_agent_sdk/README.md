@@ -6,7 +6,7 @@ The agent lives in `airbyte-claude-agent-sdk-example.py`. You can wire each conn
 
 ## Prerequisites
 
-- Python 3.10 or newer. The Claude Agent SDK bundles the Claude Code CLI, so there is nothing else to install for it to run.
+- Python 3.11 or newer. The Claude Agent SDK bundles the Claude Code CLI, so there is nothing else to install for it to run.
 - An Airbyte account with the GitHub, Linear, and Slack connectors connected in your workspace. The Free tier is enough to follow along. Airbyte Agents ships 50+ agent connectors, so you can swap in others; confirm what is live with `list_connectors()`.
 - An Anthropic API key and your Airbyte workspace credentials (see below).
 - `uv` for dependency management. `pip` works too.
@@ -53,6 +53,10 @@ Every Airbyte connector exposes three callables through `build_connector_tools(c
 Tool names are prefixed per connector (for example `github_execute`) because the three callables share a name across connectors, and all of them register on a single in-process MCP server. `allowed_tools=["mcp__airbyte__*"]` pre-approves every tool on that server so none trip a permission prompt.
 
 Handlers catch exceptions and return `is_error: True`. When the agent guesses a wrong `read_skill_docs` section, the error message carries the valid outline for Claude to read and retry without needing to abort.
+
+## Add connectors
+
+In `main`, add a tuple to the `connectors` list with the following syntax:
 
 ## Files
 
