@@ -15,7 +15,6 @@ The agent lives in `airbyte-claude-agent-sdk-example.py`. You can wire each conn
 
 Install the two SDKs and `python-dotenv`:
 
-```bash
 uv add airbyte-agent-sdk claude-agent-sdk python-dotenv
 # or: pip install airbyte-agent-sdk claude-agent-sdk python-dotenv
 ```
@@ -57,7 +56,6 @@ Handlers catch exceptions and return `is_error: True`. When the agent guesses a 
 ## Add connectors
 
 In `main`, add a tuple to the `connectors` list with the following syntax:
-
 ## Files
 
 - `airbyte-claude-agent-sdk-example.py` — the agent.
