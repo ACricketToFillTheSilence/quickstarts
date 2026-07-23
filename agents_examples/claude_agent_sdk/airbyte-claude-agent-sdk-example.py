@@ -120,6 +120,7 @@ async def main():
     # with any failure during health checks, tool construction, or query streaming.
     connectors = []
     try:
+    # Add more connectors to the agent tools here
         for slug in ("github", "linear", "slack"):
             connectors.append((slug, connect(slug)))
 
