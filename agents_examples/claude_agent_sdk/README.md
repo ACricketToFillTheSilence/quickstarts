@@ -19,7 +19,6 @@ Install the two SDKs and `python-dotenv`:
 uv add bug-triage-agent
 cd bug-triage-agent
 uv add claude-agent-sdk airbyte-agent-sdk python-dotenv
-# or: pip install airbyte-agent-sdk claude-agent-sdk python-dotenv
 ```
 
 Create a `.env` file in the same folder as the script. `connect()` reads the Airbyte variables from the environment automatically, and the Agent SDK reads `ANTHROPIC_API_KEY`.
