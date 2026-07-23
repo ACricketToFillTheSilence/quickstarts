@@ -15,7 +15,10 @@ The agent lives in `airbyte-claude-agent-sdk-example.py`. You can wire each conn
 
 Install the two SDKs and `python-dotenv`:
 
-uv add airbyte-agent-sdk claude-agent-sdk python-dotenv
+```bash
+uv add bug-triage-agent
+cd bug-triage-agent
+uv add claude-agent-sdk airbyte-agent-sdk python-dotenv
 # or: pip install airbyte-agent-sdk claude-agent-sdk python-dotenv
 ```
 
