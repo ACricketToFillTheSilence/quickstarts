@@ -55,7 +55,11 @@ Handlers catch exceptions and return `is_error: True`. When the agent guesses a 
 
 ## Add connectors
 
-In `main`, add a tuple to the `connectors` list with the following syntax:
+In `main`, add the name of the connector to the `connectors` list by adding it to the tuple in line `124`:
+
+```python
+    for slug in ("github", "linear", "slack"):
+```
 ## Files
 
 - `airbyte-claude-agent-sdk-example.py` — the agent.
