@@ -115,51 +115,53 @@ def make_airbyte_tools(slug, connector):
 
 
 async def main():
-    connectors = (
-        ("github", connect("github")),
-        ("linear", connect("linear")),
-        ("slack", connect("slack")),
-    )
+    # Build connectors incrementally inside the try so that a failure partway
+    # through construction still closes the connectors we already created, along
+    # with any failure during health checks, tool construction, or query streaming.
+    connectors = []
+    try:
+        for slug in ("github", "linear", "slack"):
+            connectors.append((slug, connect(slug)))
 
-    # Confirm every connection before handing control to the agent.
-    for name, connector in connectors:
-        health = await connector.check()
-        print(f"{name}: {health.status}")
-        if health.status != "healthy":
-            print(f"  {name} is not healthy: {health.error}")
+        # Confirm every connection before handing control to the agent.
+        for name, connector in connectors:
+            health = await connector.check()
+            print(f"{name}: {health.status}")
+            if health.status != "healthy":
+                print(f"  {name} is not healthy: {health.error}")
 
-    tools = []
-    for slug, connector in connectors:
-        tools.extend(make_airbyte_tools(slug, connector))
+        tools = []
+        for slug, connector in connectors:
+            tools.extend(make_airbyte_tools(slug, connector))
 
-    server = create_sdk_mcp_server(name="airbyte", version="1.0.0", tools=tools)
+        server = create_sdk_mcp_server(name="airbyte", version="1.0.0", tools=tools)
 
-    options = ClaudeAgentOptions(
-        mcp_servers={"airbyte": server},
-        allowed_tools=["mcp__airbyte__*"],  # inspect, read_docs, execute for all three
-        system_prompt=(
-            "You triage engineering bugs. For each connector, inspect it and read its "
-            "skill docs to learn the entities and actions before you execute. Check "
-            "Linear for duplicates before creating anything, and keep summaries short."
-        ),
-    )
+        options = ClaudeAgentOptions(
+            mcp_servers={"airbyte": server},
+            allowed_tools=["mcp__airbyte__*"],  # inspect, read_docs, execute for all three
+            system_prompt=(
+                "You triage engineering bugs. For each connector, inspect it and read its "
+                "skill docs to learn the entities and actions before you execute. Check "
+                "Linear for duplicates before creating anything, and keep summaries short."
+            ),
+        )
 
-    prompt = (
-        "Look at the GitHub issues opened in the last 24 hours. Check Linear for "
-        "related or duplicate issues, group what you find by severity, and post a "
-        "short triage summary in the #engineering Slack channel."
-    )
+        prompt = (
+            "Look at the GitHub issues opened in the last 24 hours. Check Linear for "
+            "related or duplicate issues, group what you find by severity, and post a "
+            "short triage summary in the #engineering Slack channel."
+        )
 
-    async for message in query(prompt=prompt, options=options):
-        if isinstance(message, AssistantMessage):
-            for block in message.content:
-                if isinstance(block, TextBlock):
-                    print(block.text)
-        elif isinstance(message, ResultMessage) and message.subtype == "success":
-            print(message.result)
-
-    for _, connector in connectors:
-        await connector.close()
+        async for message in query(prompt=prompt, options=options):
+            if isinstance(message, AssistantMessage):
+                for block in message.content:
+                    if isinstance(block, TextBlock):
+                        print(block.text)
+            elif isinstance(message, ResultMessage) and message.subtype == "success":
+                print(message.result)
+    finally:
+        for _, connector in connectors:
+            await connector.close()
 
 
 if __name__ == "__main__":
