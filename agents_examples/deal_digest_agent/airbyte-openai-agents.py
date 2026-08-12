@@ -12,7 +12,7 @@ Setup:
   Copy .env.example to .env and fill in the values (see the tutorial).
 
 Run:
-  uv run airbyte-openai-agents-example.py
+  uv run airbyte-openai-agents.py
 """
 
 import asyncio

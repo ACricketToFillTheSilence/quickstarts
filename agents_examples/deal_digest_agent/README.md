@@ -15,6 +15,7 @@ A runnable example agent that reads your most recent Salesforce opportunities an
 Install the SDKs and `python-dotenv`:
 
 ```bash
+uv init
 uv add openai-agents airbyte-agent-sdk python-dotenv
 # or: pip install openai-agents airbyte-agent-sdk python-dotenv
 ```
@@ -35,7 +36,7 @@ The script keeps an explicit `AirbyteAuthConfig` block commented out. Uncomment 
 ## Run
 
 ```bash
-uv run airbyte-openai-agents-example.py
+uv run airbyte-openai-agents.py
 ```
 
 The script prints a health line per connector, then prints the agent's final output after it reads Salesforce and posts the digest to Slack in mrkdwn formatting.
@@ -65,6 +66,6 @@ The model is set to `gpt-5.6` in the `Agent` constructor. Change that string to 
 
 ## Files
 
-- `airbyte-openai-agents-example.py`: the agent.
+- `airbyte-openai-agents.py`: the agent.
 - `airbyte-openai-agents-tutorial.md`: the step-by-step tutorial this script accompanies.
 ```
