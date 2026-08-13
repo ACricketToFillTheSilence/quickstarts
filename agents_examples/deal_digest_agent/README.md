@@ -67,5 +67,4 @@ The model is set to `gpt-5.6` in the `Agent` constructor. Change that string to 
 ## Files
 
 - `airbyte-openai-agents.py`: the agent.
-- `airbyte-openai-agents-tutorial.md`: the step-by-step tutorial this script accompanies.
-```
+- `.env.example`: The file to copy and add tokens to.

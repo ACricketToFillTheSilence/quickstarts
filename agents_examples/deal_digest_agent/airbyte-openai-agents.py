@@ -26,7 +26,8 @@ from airbyte_agent_sdk import AirbyteAuthConfig, build_connector_tools, connect
 
 load_dotenv()
 
-# Airbyte handles auth for every connector once you connect.
+# Airbyte handles auth implicitly from the .env file for every connector once you connect.
+# To run auth yourself, uncomment the following lines.
 #auth = AirbyteAuthConfig(
 #    airbyte_client_id=os.getenv("AIRBYTE_CLIENT_ID"),
 #    airbyte_client_secret=os.getenv("AIRBYTE_CLIENT_SECRET"),
