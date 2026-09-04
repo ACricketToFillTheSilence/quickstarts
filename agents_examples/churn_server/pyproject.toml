@@ -1,0 +1,11 @@
+[project]
+name = "churn-server"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "airbyte-agent-sdk>=0.1.333",
+    "fastmcp>=3.4.7",
+    "python-dotenv>=1.2.3",
+]
